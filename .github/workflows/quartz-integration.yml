@@ -46,13 +46,13 @@ jobs:
       - run: npm ci
       - run: npm run fixture:check
       - run: npm run test:integration
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: quartz-integration-sites
           path: integration-output
           if-no-files-found: error
       - if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: integration-output
 
@@ -69,4 +69,4 @@ jobs:
     steps:
       - name: Deploy integration fixtures
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
