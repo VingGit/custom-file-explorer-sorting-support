@@ -1,6 +1,6 @@
 {
   "name": "@vinggit/custom-file-explorer-sorting-support",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Use Obsidian Custom File Explorer Sorting specifications in Quartz navigation.",
   "type": "module",
   "license": "GPL-3.0-only",
