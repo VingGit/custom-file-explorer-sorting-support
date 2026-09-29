@@ -20,6 +20,8 @@ This package brings SebastianMC Custom File Explorer Sorting specifications to Q
 - `SORTING_SERVICE_SYMBOL` and its API version are the optional integration contract for other navigation plugins. Keep it dependency-free and backward-compatible within the major API version.
 - `static/custom-file-explorer-sorting.json` is the client Explorer contract. Treat its version as public.
 - `dist/` is committed installation output. Never edit it by hand; rebuild it from source.
+- `test-vault/` is the repository-owned integration fixture. Keep every upstream sorting order represented by a first-level folder and regenerate it only with `npm run fixture:generate`.
+- `scripts/run-quartz-integration.mjs` must build the bundled vault against Quartz 5 both without and with Root Index Panels, verify both outputs, and leave publishable artifacts under ignored `integration-output/`.
 - Use normal Quartz plugin-manager commands in integration fixtures. Do not edit host `.quartz/plugins/` output directly.
 
 ## Upstream compatibility
@@ -33,6 +35,7 @@ This package brings SebastianMC Custom File Explorer Sorting specifications to Q
 ## Verification
 
 - While iterating, run the narrowest relevant Vitest file.
-- Before committing, run `npm run check`, `npm run build`, `npm run test:upstream`, and confirm a second build leaves `dist/` unchanged.
+- Before committing, run `npm run check`, `npm run build`, `npm run test:upstream`, `npm run fixture:check`, and confirm a second build leaves `dist/` unchanged.
 - Run host integration builds only when the plugin, service contract, generated manifest, or host configuration changes.
+- Run `npm run test:integration` when the plugin, bundled vault, Quartz integration runner, or Root Index Panels contract changes.
 - Keep the fast unit/conformance suite comprehensive; weekly and host integration checks may be slower.

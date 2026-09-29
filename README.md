@@ -87,6 +87,17 @@ During a Quartz build, the plugin parses the source notes with the upstream pars
 
 The upstream parser is pinned to an audited commit. A scheduled weekly compatibility workflow tests the newest upstream checkout and deliberately alerts when the commit or version changes, even if the existing conformance suite still passes.
 
+## Integration test vault
+
+The repository includes a self-contained [test vault](test-vault). Its first-level folders cover every sorting order recognized by the upstream parser, including both directions and aliases, plus metadata extractors, secondary ordering, groups, priorities, matching rules, integrations, and navigation-only hiding.
+
+The Quartz integration workflow builds that same vault twice:
+
+- with the stock Explorer and this plugin;
+- with the stock Explorer, this plugin, and Root Index Panels.
+
+Both generated sites are checked for the sorting manifest, all fixture pages, the Explorer browser adapter, and the Root Index Panels book order. Successful non-PR runs publish the two builds together as the repository's GitHub Pages site. The workflow runs only for relevant changes, on manual request, and once a week against the current Quartz 5 branch.
+
 ## Development
 
 ```bash
@@ -94,6 +105,7 @@ npm ci
 npm run check
 npm run build
 npm run test:upstream
+npm run test:integration
 ```
 
 `dist/` is committed because Quartz installs Git-sourced plugins from their prebuilt output.
