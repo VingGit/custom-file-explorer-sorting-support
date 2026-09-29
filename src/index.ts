@@ -1,28 +1,28 @@
-export { ExampleTransformer } from "./transformer";
-export { ExampleFilter } from "./filter";
-export { ExampleEmitter } from "./emitter";
-export { default as ExampleComponent } from "./components/ExampleComponent";
-
+export { CustomFileExplorerSortingSupport, default } from "./plugin";
+export {
+  buildExplorerOrderManifest,
+  createSortingService,
+  normalizeOptions,
+  validateSortingSpecifications,
+} from "./engine";
+export { EXPLORER_MANIFEST_PATH, SORTING_SERVICE_SYMBOL } from "./types";
 export type {
-  ExampleTransformerOptions,
-  ExampleFilterOptions,
-  ExampleEmitterOptions,
+  CustomFileExplorerSortingOptions,
+  ExplorerOrderManifest,
+  QuartzNavigationSortingService,
+  QuartzSortInput,
+  QuartzSortResult,
 } from "./types";
 
-export type { ExampleComponentOptions } from "./components/ExampleComponent";
-
-// Re-export shared types from @quartz-community/types
 export type {
-  QuartzComponent,
-  QuartzComponentProps,
-  QuartzComponentConstructor,
-  StringResource,
-  QuartzTransformerPlugin,
-  QuartzFilterPlugin,
+  BuildCtx,
+  ChangeEvent,
+  FilePath,
+  ProcessedContent,
   QuartzEmitterPlugin,
-  QuartzPageTypePlugin,
-  QuartzPageTypePluginInstance,
-  PageMatcher,
-  PageGenerator,
-  VirtualPage,
-} from "@quartz-community/types";
+  QuartzEmitterPluginInstance,
+  QuartzPluginData,
+  QuartzTransformerPlugin,
+  QuartzTransformerPluginInstance,
+  StaticResources,
+} from "./quartz";

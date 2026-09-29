@@ -1,132 +1,76 @@
-# Plugin Examples
+# Sorting examples
 
-Minimal, annotated examples for each Quartz plugin type.
+These examples belong in a YAML frontmatter property named `sorting-spec`.
 
-## 1. Minimal Transformer
+## Put first-level folders in a fixed order
 
-Wraps an existing remark plugin to enforce hard line breaks.
+Use this in the root `index.md`:
 
-```ts
-import remarkBreaks from "remark-breaks";
-import type { QuartzTransformerPlugin } from "@quartz-community/types";
-
-export const HardLineBreaks: QuartzTransformerPlugin<void> = () => ({
-  name: "HardLineBreaks",
-  markdownPlugins() {
-    // Return a list of unified/remark plugins
-    return [remarkBreaks];
-  },
-});
+```yaml
+sorting-spec: |
+  Projects
+  Areas
+  Resources
+  Archive
 ```
 
-## 2. Minimal Filter
+Items not named in the list follow those four using the upstream plugin's normal outsider ordering.
 
-Excludes pages marked as `draft: true` in frontmatter.
+## Sort books by metadata
 
-```ts
-import type { QuartzFilterPlugin } from "@quartz-community/types";
-
-export const RemoveDrafts: QuartzFilterPlugin<void> = () => ({
-  name: "RemoveDrafts",
-  shouldPublish(_ctx, [_tree, vfile]) {
-    // Access frontmatter from vfile data
-    const draft = vfile.data?.frontmatter?.draft;
-    // Return false to exclude the page from the build
-    return draft !== true;
-  },
-});
+```yaml
+sorting-spec: |
+  < a-z by-metadata: created
 ```
 
-## 3. Minimal Emitter
+Give each book's `index.md` a `created` property. Quartz reads folder metadata from `index.md` first, then from a same-name folder note.
 
-Writes a `CNAME` file to the output directory.
+## Use different rules in a subfolder
 
-```ts
-import fs from "node:fs/promises";
-import path from "node:path";
-import type { QuartzEmitterPlugin } from "@quartz-community/types";
+The root note can target more than one folder:
 
-export const CNAME: QuartzEmitterPlugin<{ domain: string }> = (opts) => ({
-  name: "CNAME",
-  async emit(ctx, _content, _resources) {
-    // ctx.argv.output is the destination directory
-    const filePath = path.join(ctx.argv.output, "CNAME");
-    await fs.writeFile(filePath, opts.domain);
-    // Return the list of emitted file paths
-    return [filePath as any];
-  },
-});
+```yaml
+sorting-spec: |
+  target-folder: /
+  Projects
+  Areas
+  Archive
+
+  target-folder: name: Archive
+  > modified
 ```
 
-## 4. Minimal Component
+Alternatively, place `> modified` directly in `Archive/index.md`.
 
-Renders a simple spacer div with custom CSS.
+## Natural chapter and appendix numbers
 
-```tsx
-import type { QuartzComponent, QuartzComponentConstructor } from "@quartz-community/types";
-
-export default ((opts?: { height?: string }) => {
-  const Component: QuartzComponent = () => {
-    return <div class="spacer" style={{ height: opts?.height ?? "1rem" }} />;
-  };
-
-  // Attach CSS string to the component
-  Component.css = ".spacer { width: 100%; }";
-  return Component;
-}) satisfies QuartzComponentConstructor;
+```yaml
+sorting-spec: |
+  Introduction
+  Chapter \\d+ ...
+  Appendix \\R+ ...
+  References
 ```
 
-## 5. Minimal Page Type
+This keeps `Chapter 2` before `Chapter 10` and understands Roman numerals in appendix names.
 
-Generates a virtual "About" page if it doesn't exist.
+## Bookmark and icon equivalents
 
-```ts
-import type { QuartzPageTypePlugin } from "@quartz-community/types";
-
-export const AboutPage: QuartzPageTypePlugin<void> = () => ({
-  name: "AboutPage",
-  // Match the slug to handle
-  match: (slug) => slug === "about",
-  // Generate the page content
-  generate: async (_ctx, _content) => ({
-    slug: "about" as any,
-    frontmatter: { title: "About" },
-    content: "This is a virtual about page.",
-  }),
-});
+```yaml
+sorting-spec: |
+  bookmarked:
+    < by-bookmarks-order
+  with-icon: star
 ```
 
-## 6. Minimal Bases View Registration
+For Quartz, set `bookmarks-order: 1`, `bookmarks-order: 2`, and so on. Icon groups read `icon: star` or `panel: { icon: star }`.
 
-Registers a custom view for the `@quartz-community/bases-page` system.
+## Hide an item from navigation
 
-```ts
-import { viewRegistry } from "@quartz-community/bases-page";
-
-export function init() {
-  // Register a view that can be used in bases-page layouts
-  viewRegistry.register("my-custom-view", (props) => {
-    return <div>Custom View for {props.fileData.slug}</div>;
-  });
-}
+```yaml
+sorting-spec: |
+  --% private-overview.md
+  /--hide: Drafts
 ```
 
-## 7. Minimal i18n Setup
-
-Per-plugin translations with a fallback mechanism.
-
-```ts
-// src/i18n/locales/en-US.ts
-export default {
-  hello: "Hello",
-};
-
-// src/i18n/index.ts
-import enUS from "./locales/en-US";
-const locales = { "en-US": enUS };
-
-export function i18n(locale: string) {
-  // Fallback to en-US if locale is not found
-  return locales[locale as keyof typeof locales] || enUS;
-}
-```
+Hiding affects Explorer and compatible navigation components only. It does not remove a page from the generated site. Use Quartz publishing/filtering features when a page must not be published.

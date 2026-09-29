@@ -26,7 +26,7 @@
       "warn",
       {
         "selector": "Program:has(CallExpression[callee.property.name='addEventListener']):not(:has(CallExpression[callee.object.name='window'][callee.property.name='addCleanup']))",
-        "message": "addEventListener should be paired with window.addCleanup() for proper SPA cleanup. See ARCHITECTURE.md for details."
+        "message": "addEventListener should be paired with window.addCleanup() for proper SPA cleanup. See .github/ARCHITECTURE.md for details."
       }
     ]
   },
