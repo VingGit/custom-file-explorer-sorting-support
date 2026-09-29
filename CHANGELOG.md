@@ -9,4 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial Quartz community plugin template.
+- Full parsing and Quartz navigation support for Custom File Explorer Sorting specifications.
+- Stock Explorer ordering through a generated, versioned manifest.
+- An optional server-side sorting service for compatible navigation plugins.
+- Conformance, build, and scheduled upstream-compatibility checks.
+
+### Changed
+
+- Replaced the generic Quartz plugin template with the production sorting adapter.

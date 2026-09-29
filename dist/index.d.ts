@@ -1,21 +1,19 @@
-import { QuartzTransformerPlugin, QuartzFilterPlugin, QuartzEmitterPlugin } from '@quartz-community/types';
-export { PageGenerator, PageMatcher, QuartzComponent, QuartzComponentConstructor, QuartzComponentProps, QuartzEmitterPlugin, QuartzFilterPlugin, QuartzPageTypePlugin, QuartzPageTypePluginInstance, QuartzTransformerPlugin, StringResource, VirtualPage } from '@quartz-community/types';
-import { ExampleTransformerOptions, ExampleFilterOptions, ExampleEmitterOptions } from './types.js';
-export { ExampleComponent, ExampleComponentOptions } from './components/index.js';
+import { CustomFileExplorerSortingOptions, QuartzEmitterPluginInstance, ExplorerOrderManifest, QuartzNavigationSortingService } from './types.js';
+export { BuildCtx, ChangeEvent, EXPLORER_MANIFEST_PATH, FilePath, ProcessedContent, QuartzEmitterPlugin, QuartzPluginData, QuartzSortInput, QuartzSortResult, QuartzTransformerPlugin, QuartzTransformerPluginInstance, SORTING_SERVICE_SYMBOL, StaticResources } from './types.js';
+import 'hast';
+import 'unified';
+import 'vfile';
 
 /**
- * Example transformer showing remark/rehype usage and resource injection.
+ * Apply SebastianMC Custom File Explorer Sorting specifications to Quartz's
+ * stock Explorer and publish a shared server-side hook for compatible
+ * navigation components.
  */
-declare const ExampleTransformer: QuartzTransformerPlugin<Partial<ExampleTransformerOptions>>;
+declare function CustomFileExplorerSortingSupport(userOptions?: Partial<CustomFileExplorerSortingOptions> | undefined): QuartzEmitterPluginInstance;
 
-/**
- * Example filter that removes drafts, tagged pages, and excluded path prefixes.
- */
-declare const ExampleFilter: QuartzFilterPlugin<Partial<ExampleFilterOptions>>;
+declare function normalizeOptions(value: unknown): CustomFileExplorerSortingOptions;
+declare function createSortingService(userOptions?: unknown): QuartzNavigationSortingService;
+declare function buildExplorerOrderManifest(allFiles: unknown, userOptions?: unknown): ExplorerOrderManifest;
+declare function validateSortingSpecifications(allFiles: unknown, userOptions?: unknown): void;
 
-/**
- * Example emitter that writes a JSON manifest of content metadata.
- */
-declare const ExampleEmitter: QuartzEmitterPlugin<Partial<ExampleEmitterOptions>>;
-
-export { ExampleEmitter, ExampleEmitterOptions, ExampleFilter, ExampleFilterOptions, ExampleTransformer, ExampleTransformerOptions };
+export { CustomFileExplorerSortingOptions, CustomFileExplorerSortingSupport, ExplorerOrderManifest, QuartzEmitterPluginInstance, QuartzNavigationSortingService, buildExplorerOrderManifest, createSortingService, CustomFileExplorerSortingSupport as default, normalizeOptions, validateSortingSpecifications };

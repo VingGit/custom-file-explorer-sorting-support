@@ -1,0 +1,37 @@
+name: Weekly upstream compatibility
+
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check out current upstream source
+        run: git clone --depth 1 --branch master https://github.com/SebastianMC/obsidian-custom-sort.git .upstream/obsidian-custom-sort
+      - name: Detect a new upstream revision or version
+        id: revision
+        continue-on-error: true
+        run: node scripts/check-upstream-compatibility.mjs .upstream/obsidian-custom-sort
+      - name: Check the current upstream parser API
+        run: node scripts/check-upstream-compatibility.mjs .upstream/obsidian-custom-sort --allow-new-revision
+      - name: Test the adapter against current upstream source
+        run: |
+          npm install --no-save --package-lock=false ./.upstream/obsidian-custom-sort
+          npm test
+      - name: Report a revision that needs review
+        if: always() && steps.revision.outcome == 'failure'
+        run: |
+          echo "Custom File Explorer Sorting changed. Review the upstream diff, extend the conformance suite if needed, and update the pinned revision deliberately."
+          exit 1

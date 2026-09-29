@@ -1,96 +1,38 @@
-# Quartz Community Plugin Template
+# Repository contract
 
-Provider-agnostic instruction file for AI coding assistants developing Quartz community plugins.
+## Purpose
 
-## Project Overview
+This package brings SebastianMC Custom File Explorer Sorting specifications to Quartz 5 navigation. It must preserve upstream parsing semantics while documenting explicit Quartz substitutes for Obsidian-only runtime state.
 
-This repository is a template for building, testing, and publishing Quartz community plugins. It uses a factory-function API where plugins are created by functions returning objects with a `name` and lifecycle hooks.
+## Instruction discovery
 
-## Plugin Type Decision Tree
+- Read this file before editing anywhere in the repository.
+- Read relevant material in `.github/` before changing architecture, compatibility automation, or release behavior.
+- Keep `README.md`, `EXAMPLES.md`, and `CHANGELOG.md` human-facing. Put agent-only operating guidance here or in `.github/`.
+- Never add local machine paths, vault contents, account data, or other identifying environment details.
 
-Plugins are not mutually exclusive. A single plugin can implement multiple types.
+## Stable contracts
 
-- **Transformer**: Modifies content during the build (remark/rehype). Use if you need to change how Markdown is parsed or rendered.
-- **Filter**: Decides which files to include in the final site. Use for drafts, private notes, or path-based exclusions.
-- **Emitter**: Generates new files (JSON, RSS, CNAME, etc.). Use for site-wide manifests or integration files.
-- **Page Type**: Defines custom routes and page generation logic. Use for virtual pages or non-Markdown content.
-- **Component**: Provides UI elements for Quartz layouts. Use for navigation, sidebars, or custom widgets.
-- **Bases View**: Registers custom views in the `@quartz-community/bases-page` system.
+- `package.json` pins `obsidian-custom-sort` to the revision recorded in `.github/upstream-compatibility.json`.
+- `src/vendor/obsidian-custom-sort-runtime.*` is only the typed boundary around the bundled upstream parser. Do not reimplement or casually fork its grammar.
+- `src/engine.ts` owns Quartz data mapping and ordering semantics.
+- Hidden items are navigation-only. This plugin is not a Quartz publication filter.
+- `SORTING_SERVICE_SYMBOL` and its API version are the optional integration contract for other navigation plugins. Keep it dependency-free and backward-compatible within the major API version.
+- `static/custom-file-explorer-sorting.json` is the client Explorer contract. Treat its version as public.
+- `dist/` is committed installation output. Never edit it by hand; rebuild it from source.
+- Use normal Quartz plugin-manager commands in integration fixtures. Do not edit host `.quartz/plugins/` output directly.
 
-## Files to Modify
+## Upstream compatibility
 
-- `src/`: All plugin logic, components, and styles.
-- `package.json`: Plugin manifest (`quartz` field), dependencies, and metadata.
-- `src/i18n/`: Translations for multi-language support.
+- Support the whole grammar exposed by the pinned upstream parser, not a selected subset.
+- Preserve exact/name/wildcard/regexp target precedence and group priority/combination behavior.
+- Quartz mappings for bookmarks, icons, UI-selected standard sorting, dates, folder-note metadata, and hiding must stay documented and tested.
+- When upstream changes, inspect the change before updating the pinned revision, declarations, conformance tests, and compatibility record together.
+- The scheduled workflow must both test current upstream source and fail visibly when its revision or version changes.
 
-## Leave Alone
+## Verification
 
-- `dist/`: Build output. Gitignored. Built on install for git sources, pre-built in npm packages.
-- `.github/`: CI/CD workflows. `ci.yml` runs checks, `release.yml` handles Changesets publishing.
-- `.changeset/`: Changesets configuration. Do not modify `config.json`.
-- `tsup.config.ts`: Build configuration. Defines SINGLETON_EXTERNALS and bundling strategy. Only modify to add native dep exclusions.
-
-## Plugin Creation Workflow
-
-1. **Define Options**: Create an interface for plugin configuration in `src/types.ts`.
-2. **Implement Logic**: Create the plugin factory in a new file (e.g., `src/my-plugin.ts`).
-3. **Export**: Add the plugin to `src/index.ts`.
-4. **Manifest**: Update the `quartz` field in `package.json` with category and default options.
-5. **Test**: Add a test case in `src/tests/` and run `npm test`.
-6. **Build**: Run `npm run build` to verify the build succeeds.
-7. **Changeset**: Run `npx changeset` to create a version bump description.
-
-## Package.json Quartz Manifest
-
-The `quartz` field is required for discovery and configuration:
-
-```json
-{
-  "quartz": {
-    "name": "my-plugin",
-    "category": ["transformer", "component"],
-    "defaultOptions": { "enabled": true },
-    "optionSchema": { "enabled": { "type": "boolean" } },
-    "components": { "MyComponent": { "defaultPosition": "right" } }
-  }
-}
-```
-
-## Import Patterns
-
-- **Types**: Import from `@quartz-community/types`.
-- **Utils**: Import from `@quartz-community/utils`.
-- **Runtime**: Use `vfile` for content manipulation in transformers.
-
-## i18n Setup
-
-1. Add keys to `src/i18n/locales/en-US.ts`.
-2. Create other locales in `src/i18n/locales/`.
-3. Use the `i18n` helper in your plugin or component.
-
-## Common Mistakes
-
-- **Missing Exports**: Forgetting to export the plugin factory from `src/index.ts`.
-- **Wrong Category**: Not matching the `category` in `package.json` with the implemented hooks.
-- **Peer Dependencies**: Adding `preact` or `vfile` as `dependencies` instead of `peerDependencies`.
-- **Committing dist/**: The `dist/` directory is gitignored. npm packages ship pre-built; git sources build on install.
-- **Bundling native deps**: Plugins using `sharp`, `@napi-rs/*`, or other NAPI packages must exclude them from `noExternal`.
-
-## Testing Patterns
-
-Use `vitest`. Mock the `BuildCtx` and `ProcessedContent` when testing transformers or emitters.
-
-## Checklist Before Submission
-
-- [ ] `npm run build` completes without errors.
-- [ ] `npm test` passes all cases.
-- [ ] `npm run build` output is correct (CI builds from source).
-- [ ] `package.json` manifest is complete and accurate.
-- [ ] `README.md` documents all options.
-
-## Build System Quirks
-
-- **SINGLETON_EXTERNALS**: `SINGLETON_EXTERNALS` in `tsup.config.ts` defines packages that must NOT be bundled — they must be the same instance across all plugins (`preact`, `vfile`, `unified`, `@jackyzha0/quartz`). Everything else is bundled into `dist/`.
-- **.inline.ts**: Files ending in `.inline.ts` are bundled as raw strings for client-side injection.
-- **.scss**: Styles are compiled to CSS strings and attached to components via `Component.css`.
-- **Branded Types**: Use `FullSlug` and `FilePath` from `@quartz-community/types` for path safety.
+- While iterating, run the narrowest relevant Vitest file.
+- Before committing, run `npm run check`, `npm run build`, `npm run test:upstream`, and confirm a second build leaves `dist/` unchanged.
+- Run host integration builds only when the plugin, service contract, generated manifest, or host configuration changes.
+- Keep the fast unit/conformance suite comprehensive; weekly and host integration checks may be slower.
