@@ -1,0 +1,72 @@
+name: Quartz integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/quartz-integration.yml"
+      - "scripts/generate-integration-vault.mjs"
+      - "scripts/run-quartz-integration.mjs"
+      - "src/**"
+      - "test-vault/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsup.config.ts"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/quartz-integration.yml"
+      - "scripts/generate-integration-vault.mjs"
+      - "scripts/run-quartz-integration.mjs"
+      - "src/**"
+      - "test-vault/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsup.config.ts"
+  schedule:
+    - cron: "43 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quartz-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run fixture:check
+      - run: npm run test:integration
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quartz-integration-sites
+          path: integration-output
+          if-no-files-found: error
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: integration-output
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy integration fixtures
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -17,3 +17,9 @@ The factory registers a frozen version-1 service on `Symbol.for("@vinggit/custom
 ## Upstream boundary
 
 The upstream package ships TypeScript source instead of a reusable parser build. `src/vendor/obsidian-custom-sort-runtime.js` is a narrow runtime re-export that tsup bundles. Its sibling declaration describes only the parser surface this package consumes, keeping strict checks focused on this repository while the weekly workflow detects upstream API drift.
+
+## Quartz integration fixture
+
+`test-vault/` is generated deterministically from `scripts/generate-integration-vault.mjs` and committed. Each first-level folder owns one upstream order or syntax feature, which keeps failures attributable and makes the built site useful for manual inspection.
+
+`scripts/run-quartz-integration.mjs` uses a disposable checkout of the current Quartz 5 branch. It installs this checkout through Quartz's local plugin-manager path, builds the stock Explorer variant, then installs the pinned Root Index Panels revision and builds the combined variant. It compares the manifests, checks every case and target folder, verifies the browser adapter, and proves that the Root Index Panels switcher follows the root specification. `.github/workflows/quartz-integration.yml` uploads both sites and deploys their combined landing page on non-PR runs.

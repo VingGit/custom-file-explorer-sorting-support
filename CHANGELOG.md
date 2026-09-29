@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stock Explorer ordering through a generated, versioned manifest.
 - An optional server-side sorting service for compatible navigation plugins.
 - Conformance, build, and scheduled upstream-compatibility checks.
+- A comprehensive bundled test vault and dual Quartz integration-site workflow.
 
 ### Changed
 
