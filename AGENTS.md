@@ -39,3 +39,13 @@ This package brings SebastianMC Custom File Explorer Sorting specifications to Q
 - Run host integration builds only when the plugin, service contract, generated manifest, or host configuration changes.
 - Run `npm run test:integration` when the plugin, bundled vault, Quartz integration runner, or Root Index Panels contract changes.
 - Keep the fast unit/conformance suite comprehensive; weekly and host integration checks may be slower.
+
+## Root Books ecosystem
+
+- Release this project in exact semantic-version lockstep with
+  `VingGit/root-books-workspace` and `VingGit/root-index-panels`.
+- Use release tags equal to the version without a leading `v`.
+- Keep cross-repository instructions portable: never add contributor machine
+  paths, vault contents, account data, or credentials.
+- A dependency or compatibility automation may report drift, but it must not
+  version or release this repository independently.

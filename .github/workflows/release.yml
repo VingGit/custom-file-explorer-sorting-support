@@ -2,35 +2,57 @@ name: Release
 
 on:
   push:
-    branches: [main]
-
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+    tags: ["[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
 
 jobs:
   release:
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
-      - name: Verify npm authentication
-        run: npm whoami --registry=https://registry.npmjs.org
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify tagged commit is contained in main
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor HEAD origin/main
+
+      - name: Verify tag matches package and manifest versions
+        run: |
+          package_version="$(node -p "require('./package.json').version")"
+          manifest_version="$(node -p "require('./package.json').quartz.version")"
+          if [ "$GITHUB_REF_NAME" != "$package_version" ] || [ "$package_version" != "$manifest_version" ]; then
+            echo "::error::Tag, package version, and Quartz manifest version must match exactly"
+            exit 1
+          fi
+
       - run: npm ci
-      - name: Create Release PR or Publish
-        uses: changesets/action@v1
-        with:
-          publish: npm run release
-          title: "chore: version package"
-          commit: "chore: version package"
+      - run: npm run check
+      - run: npm run build
+      - run: npm run test:upstream
+
+      - name: Publish package if missing
+        run: |
+          if npm view "@vinggit/custom-file-explorer-sorting-support@$GITHUB_REF_NAME" version >/dev/null 2>&1; then
+            echo "Version already published; skipping npm publish"
+          else
+            npm publish --access public
+          fi
+
+      - name: Create GitHub release if missing
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
+          fi
