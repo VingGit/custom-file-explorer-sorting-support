@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0
+
+### Changed
+
+- Coordinate the first lockstep release with Root Books Workspace and Root
+  Index Panels.
+- Align package and Quartz manifest versions and require release tags without a
+  leading `v`.
+
 ## 0.2.0
 
 ### Minor Changes

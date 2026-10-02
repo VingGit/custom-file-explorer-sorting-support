@@ -14,6 +14,11 @@ The emitter writes a versioned JSON manifest containing ordered and hidden child
 
 The factory registers a frozen version-1 service on `Symbol.for("@vinggit/custom-file-explorer-sorting-support/service/v1")`. Consumers must look up that symbol at render time, validate `apiVersion`, and preserve their existing order if `matched` is false or the service is absent. This intentionally avoids a package dependency or license coupling.
 
+Root Books Workspace, Root Index Panels, and this package release at the same
+semantic version. The service remains dependency-free, but every ecosystem
+release audits the shared sorting and portable book-metadata assumptions. Tags
+equal the version without a leading `v`.
+
 ## Upstream boundary
 
 The upstream package ships TypeScript source instead of a reusable parser build. `src/vendor/obsidian-custom-sort-runtime.js` is a narrow runtime re-export that tsup bundles. Its sibling declaration describes only the parser surface this package consumes, keeping strict checks focused on this repository while the weekly workflow detects upstream API drift.
