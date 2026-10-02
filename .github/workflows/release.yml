@@ -42,6 +42,8 @@ jobs:
       - run: npm run test:upstream
 
       - name: Publish package if missing
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if npm view "@vinggit/custom-file-explorer-sorting-support@$GITHUB_REF_NAME" version >/dev/null 2>&1; then
             echo "Version already published; skipping npm publish"
