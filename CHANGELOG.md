@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1
+
+### Changed
+
+- Coordinate the corrective `0.9.1` ecosystem release after Root Books
+  Workspace moved to a fresh repository for its new Obsidian plugin ID.
+
 ## 0.9.0
 
 ### Changed
