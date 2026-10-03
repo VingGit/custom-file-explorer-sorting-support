@@ -14,7 +14,7 @@ The emitter writes a versioned JSON manifest containing ordered and hidden child
 
 The factory registers a frozen version-1 service on `Symbol.for("@vinggit/custom-file-explorer-sorting-support/service/v1")`. Consumers must look up that symbol at render time, validate `apiVersion`, and preserve their existing order if `matched` is false or the service is absent. This intentionally avoids a package dependency or license coupling.
 
-Root Books Workspace, Root Index Panels, and this package release at the same
+Root Books Toolkit, Root Index Panels, and this package release at the same
 semantic version. The service remains dependency-free, but every ecosystem
 release audits the shared sorting and portable book-metadata assumptions. Tags
 equal the version without a leading `v`.
