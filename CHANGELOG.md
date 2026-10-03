@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.2
+
+### Changed
+
+- Coordinate the `0.9.2` ecosystem release with the Obsidian plugin's new
+  Root Books Toolkit display name. Sorting behavior is unchanged.
+
 ## 0.9.1
 
 ### Changed

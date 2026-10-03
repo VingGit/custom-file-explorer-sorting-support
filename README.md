@@ -5,7 +5,7 @@ Use the same `sorting-spec` frontmatter in Obsidian and on a Quartz 5 site.
 This plugin reads the syntax from SebastianMC's [Custom File Explorer Sorting](https://github.com/SebastianMC/obsidian-custom-sort) plugin. It applies those rules to Quartz's stock Explorer and exposes the same ordering to compatible navigation plugins such as [Root Index Panels](https://github.com/VingGit/root-index-panels).
 
 It releases in version lockstep with Root Index Panels and
-[Root Books Workspace](https://github.com/VingGit/obsidian-root-books-workspace). Matching
+[Root Books Toolkit](https://github.com/VingGit/obsidian-root-books-workspace). Matching
 versions are the tested combination; `0.9.0` is the first coordinated release.
 
 ## Install
