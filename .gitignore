@@ -34,6 +34,7 @@ coverage/
 .nyc_output
 .integration/
 integration-output/
+test-vault/.obsidian/
 
 # Package files
 *.tgz
