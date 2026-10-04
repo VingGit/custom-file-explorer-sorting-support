@@ -2,7 +2,7 @@
 
 Use the same `sorting-spec` frontmatter in Obsidian and on a Quartz 5 site.
 
-This plugin reads the syntax from SebastianMC's [Custom File Explorer Sorting](https://github.com/SebastianMC/obsidian-custom-sort) plugin. It applies those rules to Quartz's stock Explorer and exposes the same ordering to compatible navigation plugins such as [Root Index Panels](https://github.com/VingGit/root-index-panels).
+This plugin reads the syntax from SebastianMC's [Custom File Explorer Sorting](https://github.com/SebastianMC/obsidian-custom-sort) plugin. It applies those rules to Quartz's stock Explorer and folder-page directory overviews, and exposes the same ordering to compatible navigation plugins such as [Root Index Panels](https://github.com/VingGit/root-index-panels).
 
 It releases in version lockstep with Root Index Panels and
 [Root Books Toolkit](https://github.com/VingGit/obsidian-root-books-workspace). Matching
@@ -87,7 +87,7 @@ plugins:
 
 ## How it works
 
-During a Quartz build, the plugin parses the source notes with the upstream parser and emits `static/custom-file-explorer-sorting.json`. A small browser script applies that deterministic order whenever the Explorer renders, including after SPA navigation. Compatible server-rendered navigation plugins use a versioned in-process sorting service, so the root book selector and nested sidebars follow the same rules before HTML is written.
+During a Quartz build, the plugin parses the source notes with the upstream parser and emits `static/custom-file-explorer-sorting.json`. A small browser script applies that deterministic order whenever the Explorer or a folder-page directory overview renders, including after SPA navigation. Compatible server-rendered navigation plugins use a versioned in-process sorting service, so the root book selector and nested sidebars follow the same rules before HTML is written.
 
 The upstream parser is pinned to an audited commit. A scheduled weekly compatibility workflow tests the newest upstream checkout and deliberately alerts when the commit or version changes, even if the existing conformance suite still passes.
 
@@ -100,7 +100,7 @@ The Quartz integration workflow builds that same vault twice:
 - with the stock Explorer and this plugin;
 - with the stock Explorer, this plugin, and Root Index Panels.
 
-Both generated sites are checked for the sorting manifest, all fixture pages, the Explorer browser adapter, and the Root Index Panels book order. Successful non-PR runs publish the two builds together as the repository's GitHub Pages site. The workflow runs only for relevant changes, on manual request, and once a week against the current Quartz 5 branch.
+Both generated sites are checked for the sorting manifest, all fixture pages, the Explorer and folder-page browser adapters, and the Root Index Panels book order. Successful non-PR runs publish the two builds together as the repository's GitHub Pages site. The workflow runs only for relevant changes, on manual request, and once a week against the current Quartz 5 branch.
 
 ## Development
 

@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const integrationRoot = path.join(repositoryRoot, ".integration");
 const quartzRoot = path.join(integrationRoot, "quartz");
+const sortingPluginRoot = path.join(integrationRoot, "custom-file-explorer-sorting-support");
 const rootIndexRoot = path.join(integrationRoot, "root-index-panels");
 const outputRoot = path.join(repositoryRoot, "integration-output");
 const withoutPanels = path.join(outputRoot, "without-root-index-panels");
@@ -50,6 +51,14 @@ async function prepareVault() {
   const contentRoot = path.join(quartzRoot, "content");
   await rm(contentRoot, { recursive: true, force: true });
   await cp(path.join(repositoryRoot, "test-vault"), contentRoot, { recursive: true });
+}
+
+async function prepareSortingPlugin() {
+  await symlink(
+    repositoryRoot,
+    sortingPluginRoot,
+    process.platform === "win32" ? "junction" : "dir",
+  );
 }
 
 async function prepareRootIndexPanels() {
@@ -139,12 +148,27 @@ async function verifySites() {
     ...resources.matchAll(/src="\.\/static\/(resource-after-[^"]+\.js)"/g),
   ].map((match) => match[1]);
   let foundExplorerAdapter = false;
+  let foundFolderPageAdapter = false;
   for (const resource of resourceNames) {
     const contents = await readFile(path.join(withoutPanels, "static", resource), "utf8");
     if (contents.includes("custom-file-explorer-sorting.json")) foundExplorerAdapter = true;
+    if (contents.includes(".page-listing ul.section-ul")) foundFolderPageAdapter = true;
   }
   if (!foundExplorerAdapter) {
     throw new Error("The stock Explorer sorting browser adapter was not emitted");
+  }
+  if (!foundFolderPageAdapter) {
+    throw new Error("The folder-page sorting browser adapter was not emitted");
+  }
+
+  const folderPageHtml = await readFile(
+    path.join(withoutPanels, "25-files-first", "index.html"),
+    "utf8",
+  );
+  if (!folderPageHtml.includes('class="page-listing"') || !folderPageHtml.includes("folder-3")) {
+    throw new Error(
+      "The integration fixture did not generate a folder-page listing with nested folders",
+    );
   }
 }
 
@@ -175,8 +199,9 @@ await cloneQuartz();
 await rm(outputRoot, { recursive: true, force: true });
 await mkdir(outputRoot, { recursive: true });
 await prepareVault();
+await prepareSortingPlugin();
 await run("npm", ["ci", "--no-audit", "--no-fund"], quartzRoot);
-await quartz("plugin", "add", repositoryRoot);
+await quartz("plugin", "add", sortingPluginRoot);
 await quartz("plugin", "enable", "custom-file-explorer-sorting-support");
 await quartz("build", "--output", withoutPanels);
 await prepareRootIndexPanels();

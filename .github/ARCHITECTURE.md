@@ -6,9 +6,9 @@ The emitter receives all processed Quartz files. `src/model.ts` turns their slug
 
 `src/engine.ts` passes every multiline specification to the exact upstream parser pinned in `package.json`. It resolves target rules in upstream order: exact path, folder name, then wildcard or regular expression. Sorting is applied to opaque caller values so server-rendered components can use it without sharing their node types.
 
-## Stock Explorer
+## Stock Explorer and folder pages
 
-The emitter writes a versioned JSON manifest containing ordered and hidden child keys for each matched folder. The inline script fetches that manifest, observes Explorer rendering, and reorders the existing DOM after initial load and SPA navigation. It does not alter content publication.
+The emitter writes a versioned JSON manifest containing ordered and hidden child keys for each matched folder. The inline script fetches that manifest, observes stock Explorer and folder-page directory-list rendering, and reorders the existing DOM after initial load and SPA navigation. Folder links are resolved against the manifest so their `index.md` metadata participates in the same order as Explorer. It does not alter content publication.
 
 ## Compatible navigation components
 
@@ -27,4 +27,4 @@ The upstream package ships TypeScript source instead of a reusable parser build.
 
 `test-vault/` is generated deterministically from `scripts/generate-integration-vault.mjs` and committed. Each first-level folder owns one upstream order or syntax feature, which keeps failures attributable and makes the built site useful for manual inspection.
 
-`scripts/run-quartz-integration.mjs` uses a disposable checkout of the current Quartz 5 branch. It installs this checkout through Quartz's local plugin-manager path, builds the stock Explorer variant, then installs the pinned Root Index Panels revision and builds the combined variant. It compares the manifests, checks every case and target folder, verifies the browser adapter, and proves that the Root Index Panels switcher follows the root specification. `.github/workflows/quartz-integration.yml` uploads both sites and deploys their combined landing page on non-PR runs.
+`scripts/run-quartz-integration.mjs` uses a disposable checkout of the current Quartz 5 branch. It installs this checkout through Quartz's local plugin-manager path, builds the stock Explorer variant, then installs the pinned Root Index Panels revision and builds the combined variant. It compares the manifests, checks every case and target folder, verifies both browser navigation surfaces, and proves that the Root Index Panels switcher follows the root specification. `.github/workflows/quartz-integration.yml` uploads both sites and deploys their combined landing page on non-PR runs.

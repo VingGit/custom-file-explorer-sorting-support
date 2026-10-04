@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.3
+
+### Fixed
+
+- Apply each folder's sorting specification to Quartz folder-page directory
+  overviews, including nested folders whose metadata comes from `index.md`.
+- Resolve the generated sorting manifest correctly when Quartz is hosted below
+  a URL subpath.
+
 ## 0.9.2
 
 ### Changed
