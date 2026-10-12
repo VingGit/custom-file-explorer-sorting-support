@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0
+
+### Changed
+
+- Coordinate the `0.10.0` ecosystem release with Root Books Toolkit's
+  read-only companion audit and Root Index Panels' simplified content-policy
+  configuration. Sorting behavior and the shared service contract are
+  unchanged.
+
 ## 0.9.3
 
 ### Fixed
