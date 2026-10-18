@@ -11,6 +11,17 @@ const rootIndexRoot = path.join(integrationRoot, "root-index-panels");
 const outputRoot = path.join(repositoryRoot, "integration-output");
 const withoutPanels = path.join(outputRoot, "without-root-index-panels");
 const withPanels = path.join(outputRoot, "with-root-index-panels");
+const pagesProject =
+  process.env.GITHUB_REPOSITORY?.split("/").filter(Boolean).at(-1) ??
+  "custom-file-explorer-sorting-support";
+const pagesBaseDir = `/${pagesProject}`;
+const withoutPanelsBaseDir = `${pagesBaseDir}/without-root-index-panels`;
+const withPanelsBaseDir = `${pagesBaseDir}/with-root-index-panels`;
+const pagesOwner =
+  process.env.GITHUB_REPOSITORY_OWNER ??
+  process.env.GITHUB_REPOSITORY?.split("/").filter(Boolean)[0] ??
+  "VingGit";
+const pagesHost = `${pagesOwner.toLowerCase()}.github.io`;
 const quartzRepository = process.env.QUARTZ_REPOSITORY ?? "https://github.com/jackyzha0/quartz.git";
 const quartzRef = process.env.QUARTZ_REF ?? "v5";
 const rootIndexRepository =
@@ -100,6 +111,16 @@ async function enableArticleNavigation() {
     configPath,
     `${config.slice(0, pluginStart)}${configured}${config.slice(pluginEnd)}`,
   );
+}
+
+async function setQuartzBaseUrl(baseDir) {
+  const configPath = path.join(quartzRoot, "quartz.config.yaml");
+  const config = await readFile(configPath, "utf8");
+  const configured = config.replace(/^  baseUrl: .*$/m, `  baseUrl: ${pagesHost}${baseDir}`);
+  if (configured === config) {
+    throw new Error("Quartz configuration has no baseUrl to update");
+  }
+  await writeFile(configPath, configured, "utf8");
 }
 
 function orderedFolderKeys(manifest, folder) {
@@ -203,6 +224,16 @@ async function verifySites() {
 
   const withoutRootHtml = await readFile(path.join(withoutPanels, "index.html"), "utf8");
   const withRootHtml = await readFile(path.join(withPanels, "index.html"), "utf8");
+  for (const [label, html, baseDir] of [
+    ["disabled", withoutRootHtml, withoutPanelsBaseDir],
+    ["enabled", withRootHtml, withPanelsBaseDir],
+  ]) {
+    if (!html.includes(`data-basepath="${baseDir}"`)) {
+      throw new Error(
+        `The Root Index Panels ${label} build did not retain its GitHub Pages base path`,
+      );
+    }
+  }
   if (withoutRootHtml.includes("rip-sidebar")) {
     throw new Error("Root Index Panels markup appeared in the disabled integration build");
   }
@@ -294,11 +325,13 @@ await run("npm", ["ci", "--no-audit", "--no-fund"], quartzRoot);
 await quartz("plugin", "add", sortingPluginRoot);
 await quartz("plugin", "enable", "custom-file-explorer-sorting-support");
 await enableArticleNavigation();
-await quartz("build", "--output", withoutPanels);
+await setQuartzBaseUrl(withoutPanelsBaseDir);
+await quartz("build", "--output", withoutPanels, "--baseDir", withoutPanelsBaseDir);
 await prepareRootIndexPanels();
 await quartz("plugin", "add", rootIndexRoot);
 await quartz("plugin", "enable", "root-index-panels");
-await quartz("build", "--output", withPanels);
+await setQuartzBaseUrl(withPanelsBaseDir);
+await quartz("build", "--output", withPanels, "--baseDir", withPanelsBaseDir);
 await verifySites();
 await writeLandingPage();
 

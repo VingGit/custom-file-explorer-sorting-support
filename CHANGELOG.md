@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Build both published Quartz test sites with their full GitHub Pages base paths
+  so stock Explorer links stay inside the selected integration site.
+
 ## 0.12.0
 
 ### Added
