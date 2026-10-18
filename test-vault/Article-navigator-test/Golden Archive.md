@@ -2,10 +2,12 @@
 created: 2026-06-19T10:43:43
 updated: 2026-10-18T14:23:49
 SeeAlso: []
-PreviousArticle: "[[Hermeneutics of Hard Drive]]"
-NextArticle: "[[OpenSearch vs competitors]]"
+PreviousArticle: "[[Lunar Workshop]]"
+NextArticle: "[[Tidal Notebook]]"
 ---
 
-# Disk Image Extraction
+# Golden Archive
 
 Deterministic article-navigation test content.
+
+Related: [[Mossy Telescope]].

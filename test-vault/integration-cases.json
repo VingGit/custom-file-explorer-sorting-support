@@ -59,20 +59,82 @@
   ],
   "articleNavigationFolder": "article-navigator-test",
   "articleNavigationOrder": [
-    "article-navigator-test/define-forensic-poc-scope",
-    "article-navigator-test/choosing-the-right-framework",
-    "article-navigator-test/opensearch-vs-competitors",
-    "article-navigator-test/disk-image-extraction",
-    "article-navigator-test/hermeneutics-of-hard-drive",
-    "article-navigator-test/opensearch-digital-humanities-plugins",
-    "article-navigator-test/excluding-native-windows-files",
-    "article-navigator-test/windows-install-hash-differences",
-    "article-navigator-test/thesis-site-heading-ideas",
-    "article-navigator-test/digital-humanities-in-forensics",
-    "article-navigator-test/obsidian-markdown-conversion",
-    "article-navigator-test/core-concepts-for-forensics",
-    "article-navigator-test/zulu-thesis-topic-overview",
-    "article-navigator-test/purpose-statement",
-    "article-navigator-test/alpha-system-prompt-crafting"
-  ]
+    "article-navigator-test/willow-prism",
+    "article-navigator-test/ember-bridge",
+    "article-navigator-test/tidal-notebook",
+    "article-navigator-test/golden-archive",
+    "article-navigator-test/lunar-workshop",
+    "article-navigator-test/cobalt-meadow",
+    "article-navigator-test/paper-aurora",
+    "article-navigator-test/juniper-clock",
+    "article-navigator-test/silent-atlas",
+    "article-navigator-test/bramble-compass",
+    "article-navigator-test/quartz-orchard",
+    "article-navigator-test/harbor-lantern",
+    "article-navigator-test/velvet-circuit",
+    "article-navigator-test/copper-kite",
+    "article-navigator-test/mossy-telescope"
+  ],
+  "articleNavigationReferences": {
+    "article-navigator-test/mossy-telescope": [
+      "article-navigator-test/harbor-lantern",
+      "10-created-desc/alpha"
+    ],
+    "article-navigator-test/copper-kite": [
+      "article-navigator-test/cobalt-meadow"
+    ],
+    "article-navigator-test/velvet-circuit": [
+      "article-navigator-test/ember-bridge",
+      "47-numeric-roman-date-matchers/chapter-2-notes"
+    ],
+    "article-navigator-test/harbor-lantern": [
+      "article-navigator-test/quartz-orchard"
+    ],
+    "article-navigator-test/quartz-orchard": [
+      "article-navigator-test/silent-atlas",
+      "25-files-first/folder-3"
+    ],
+    "article-navigator-test/bramble-compass": [
+      "article-navigator-test/willow-prism"
+    ],
+    "article-navigator-test/silent-atlas": [
+      "article-navigator-test/copper-kite",
+      "44-secondary-order/chapter-10-alpha"
+    ],
+    "article-navigator-test/juniper-clock": [
+      "article-navigator-test/paper-aurora"
+    ],
+    "article-navigator-test/paper-aurora": [
+      "article-navigator-test/lunar-workshop",
+      "48-navigation-hide/hidden"
+    ],
+    "article-navigator-test/cobalt-meadow": [
+      "article-navigator-test/golden-archive"
+    ],
+    "article-navigator-test/lunar-workshop": [
+      "article-navigator-test/tidal-notebook",
+      "49-target-folder-rules/exact/alpha"
+    ],
+    "article-navigator-test/golden-archive": [
+      "article-navigator-test/mossy-telescope"
+    ],
+    "article-navigator-test/tidal-notebook": [
+      "article-navigator-test/velvet-circuit",
+      "09-created/zulu"
+    ],
+    "article-navigator-test/ember-bridge": [
+      "article-navigator-test/juniper-clock"
+    ],
+    "article-navigator-test/willow-prism": [
+      "article-navigator-test/bramble-compass",
+      "47-numeric-roman-date-matchers/appendix-iv-notes"
+    ]
+  },
+  "articleNavigationProbe": {
+    "slug": "article-navigator-test/copper-kite",
+    "previousSlug": "article-navigator-test/mossy-telescope",
+    "previousTitle": "Mossy Telescope",
+    "nextSlug": "article-navigator-test/velvet-circuit",
+    "nextTitle": "Velvet Circuit"
+  }
 }

@@ -331,111 +331,104 @@ async function writeArticleNavigationFixture() {
   const folder = "Article-navigator-test";
   const articles = [
     {
-      file: "Alpha system prompt crafting.md",
+      file: "Mossy Telescope.md",
       created: "2026-01-17T10:50:32",
       updated: "2026-10-17T10:28:36",
-      next: "Purpose statement",
-      body: "The alphabetically first filename is intentionally the earliest article.",
+      references: ["Harbor Lantern", "10-created-desc/Alpha"],
+      body: "The invented filename is intentionally unrelated to the article's chronology.",
     },
     {
-      file: "Purpose statement.md",
+      file: "Copper Kite.md",
       created: "2026-01-17T10:58:32",
       updated: "2026-09-27T09:08:05",
-      previous: "Alpha system prompt crafting",
-      next: "Zulu thesis topic overview",
+      references: ["Cobalt Meadow"],
     },
     {
-      file: "Zulu thesis topic overview.md",
+      file: "Velvet Circuit.md",
       created: "2026-01-24T10:14:40",
       updated: "2026-10-18T14:21:27",
-      previous: "Purpose statement",
-      next: "Core concepts for forensics",
-      body: "The alphabetically last filename intentionally follows Purpose statement.",
+      references: ["Ember Bridge", "47-numeric-roman-date-matchers/Chapter 2 Notes"],
     },
     {
-      file: "Core concepts for forensics.md",
+      file: "Harbor Lantern.md",
       created: "2026-02-04T10:33:08",
       updated: "2026-10-01T06:40:57",
-      previous: "Zulu thesis topic overview",
-      next: "Obsidian Markdown Conversion",
+      references: ["Quartz Orchard"],
     },
     {
-      file: "Obsidian Markdown Conversion.md",
+      file: "Quartz Orchard.md",
       created: "2026-05-08T07:43:43",
       updated: "2026-09-27T09:08:05",
-      previous: "Core concepts for forensics",
-      next: "Digital Humanities in Forensics",
+      references: ["Silent Atlas", "25-files-first/folder-3"],
     },
     {
-      file: "Digital Humanities in Forensics.md",
+      file: "Bramble Compass.md",
       created: "2026-05-08T10:43:43",
       updated: "2026-10-01T06:42:24",
-      previous: "Obsidian Markdown Conversion",
-      next: "Thesis site heading ideas",
+      references: ["Willow Prism"],
     },
     {
-      file: "Thesis site heading ideas.md",
+      file: "Silent Atlas.md",
       created: "2026-05-09T10:43:43",
       updated: "2026-09-27T09:08:05",
-      previous: "Digital Humanities in Forensics",
-      next: "Windows Install Hash Differences",
+      references: ["Copper Kite", "44-secondary-order/Chapter 10 alpha"],
     },
     {
-      file: "Windows Install Hash Differences.md",
+      file: "Juniper Clock.md",
       created: "2026-05-12T10:43:43",
       updated: "2026-09-27T09:08:05",
-      previous: "Thesis site heading ideas",
-      next: "Excluding native Windows files",
+      references: ["Paper Aurora"],
     },
     {
-      file: "Excluding native Windows files.md",
+      file: "Paper Aurora.md",
       created: "2026-05-22T10:43:43",
       updated: "2026-09-27T09:08:05",
-      previous: "Windows Install Hash Differences",
-      next: "OpenSearch Digital Humanities plugins",
+      references: ["Lunar Workshop", "48-navigation-hide/hidden"],
     },
     {
-      file: "OpenSearch Digital Humanities plugins.md",
+      file: "Cobalt Meadow.md",
       created: "2026-06-06T10:43:43",
       updated: "2026-09-27T09:08:05",
-      previous: "Excluding native Windows files",
-      next: "Hermeneutics of Hard Drive",
+      references: ["Golden Archive"],
     },
     {
-      file: "Hermeneutics of Hard Drive.md",
+      file: "Lunar Workshop.md",
       created: "2026-06-08T09:43:43",
       updated: "2026-09-27T09:08:05",
-      previous: "OpenSearch Digital Humanities plugins",
-      next: "Disk Image Extraction",
+      references: ["Tidal Notebook", "49-target-folder-rules/exact/alpha"],
     },
     {
-      file: "Disk Image Extraction.md",
+      file: "Golden Archive.md",
       created: "2026-06-19T10:43:43",
       updated: "2026-10-18T14:23:49",
-      previous: "Hermeneutics of Hard Drive",
-      next: "OpenSearch vs competitors",
+      references: ["Mossy Telescope"],
     },
     {
-      file: "OpenSearch vs competitors.md",
+      file: "Tidal Notebook.md",
       created: "2026-07-07T10:43:43",
       updated: "2026-09-27T09:08:05",
-      previous: "Disk Image Extraction",
-      next: "Choosing the right framework",
+      references: ["Velvet Circuit", "09-created/Zulu"],
     },
     {
-      file: "Choosing the right framework.md",
+      file: "Ember Bridge.md",
       created: "2026-07-10T11:28:58",
       updated: "2026-09-27T09:08:05",
-      previous: "OpenSearch vs competitors",
-      next: "Define Forensic POC scope",
+      references: ["Juniper Clock"],
     },
     {
-      file: "Define Forensic POC scope.md",
+      file: "Willow Prism.md",
       created: "2026-08-02T11:28:58",
       updated: "2026-10-01T06:38:58",
-      previous: "Choosing the right framework",
+      references: ["Bramble Compass", "47-numeric-roman-date-matchers/Appendix IV Notes"],
     },
   ];
+
+  const articleTitle = (article) => article.file.slice(0, -3);
+  const canonicalSlug = (value) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9/]+/g, "-")
+      .replace(/(^|\/)\-+|\-+(?=\/|$)/g, "$1");
 
   await write(
     `${folder}/index.md`,
@@ -446,17 +439,21 @@ async function writeArticleNavigationFixture() {
       "sorting-spec: |",
       "  > a-z by-metadata: created",
     ]) +
-      "# Article Navigator test\n\nThe article names deliberately disagree with their created-date order.\n",
+      "# Article Navigator test\n\nThe article names deliberately disagree with their created-date order.\n\n" +
+      "Related: [[Copper Kite]] and [[25-files-first/folder-3]].\n",
   );
 
-  for (const article of articles) {
+  for (const [index, article] of articles.entries()) {
     const lines = [`created: ${article.created}`, `updated: ${article.updated}`, "SeeAlso: []"];
-    if (article.previous) lines.push(`PreviousArticle: "[[${article.previous}]]"`);
-    if (article.next) lines.push(`NextArticle: "[[${article.next}]]"`);
-    const title = article.file.slice(0, -3);
+    const previous = articles[index - 1];
+    const next = articles[index + 1];
+    if (previous) lines.push(`PreviousArticle: "[[${articleTitle(previous)}]]"`);
+    if (next) lines.push(`NextArticle: "[[${articleTitle(next)}]]"`);
+    const title = articleTitle(article);
+    const references = article.references.map((reference) => `[[${reference}]]`).join(" and ");
     await write(
       `${folder}/${article.file}`,
-      `${frontmatter(lines)}# ${title}\n\n${article.body ?? "Deterministic article-navigation test content."}\n`,
+      `${frontmatter(lines)}# ${title}\n\n${article.body ?? "Deterministic article-navigation test content."}\n\nRelated: ${references}.\n`,
     );
   }
 
@@ -475,14 +472,34 @@ async function writeArticleNavigationFixture() {
 
   const canonicalFolder = folder.toLowerCase();
   const canonicalOrder = [...articles].reverse().map((article) => {
-    const slug = article.file
-      .slice(0, -3)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+    const slug = canonicalSlug(articleTitle(article));
     return `${canonicalFolder}/${slug}`;
   });
-  return { folder: canonicalFolder, order: canonicalOrder };
+  const canonicalReferences = Object.fromEntries(
+    articles.map((article) => {
+      const source = `${canonicalFolder}/${canonicalSlug(articleTitle(article))}`;
+      const targets = article.references.map((reference) =>
+        reference.includes("/")
+          ? canonicalSlug(reference)
+          : `${canonicalFolder}/${canonicalSlug(reference)}`,
+      );
+      return [source, targets];
+    }),
+  );
+  const probeIndex = 1;
+  const probe = articles[probeIndex];
+  return {
+    folder: canonicalFolder,
+    order: canonicalOrder,
+    references: canonicalReferences,
+    probe: {
+      slug: `${canonicalFolder}/${canonicalSlug(articleTitle(probe))}`,
+      previousSlug: `${canonicalFolder}/${canonicalSlug(articleTitle(articles[probeIndex - 1]))}`,
+      previousTitle: articleTitle(articles[probeIndex - 1]),
+      nextSlug: `${canonicalFolder}/${canonicalSlug(articleTitle(articles[probeIndex + 1]))}`,
+      nextTitle: articleTitle(articles[probeIndex + 1]),
+    },
+  };
 }
 
 await rm(vaultRoot, { recursive: true, force: true });
@@ -517,6 +534,8 @@ await write(
       ],
       articleNavigationFolder: articleNavigation.folder,
       articleNavigationOrder: articleNavigation.order,
+      articleNavigationReferences: articleNavigation.references,
+      articleNavigationProbe: articleNavigation.probe,
     },
     null,
     2,

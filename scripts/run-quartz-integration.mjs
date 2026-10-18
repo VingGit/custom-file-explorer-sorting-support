@@ -186,39 +186,42 @@ async function verifySites() {
   ) {
     throw new Error("Article Navigator property names were not detected from its settings file");
   }
-  const purposeNavigation =
-    articleNavigation.pages[`${cases.articleNavigationFolder}/purpose-statement`];
+  const probe = cases.articleNavigationProbe;
+  const probeNavigation = articleNavigation.pages[probe.slug];
   if (
-    purposeNavigation?.previous?.slug !==
-      `${cases.articleNavigationFolder}/alpha-system-prompt-crafting` ||
-    purposeNavigation?.next?.slug !== `${cases.articleNavigationFolder}/zulu-thesis-topic-overview`
+    probeNavigation?.previous?.slug !== probe.previousSlug ||
+    probeNavigation?.next?.slug !== probe.nextSlug
   ) {
-    throw new Error("Purpose statement navigation targets were not resolved correctly");
+    throw new Error("Article navigation probe targets were not resolved correctly");
   }
 
   const contentIndex = JSON.parse(
     await readFile(path.join(withoutPanels, "static", "contentIndex.json"), "utf8"),
   );
-  const purposeGraphLinks =
-    contentIndex[`${cases.articleNavigationFolder}/purpose-statement`]?.links;
+  const probeGraphLinks = contentIndex[probe.slug]?.links;
   const expectedGraphLinks = [
-    `${cases.articleNavigationFolder}/alpha-system-prompt-crafting`,
-    `${cases.articleNavigationFolder}/zulu-thesis-topic-overview`,
+    probe.previousSlug,
+    probe.nextSlug,
+    ...cases.articleNavigationReferences[probe.slug],
   ];
   if (
-    !Array.isArray(purposeGraphLinks) ||
-    expectedGraphLinks.some((link) => !purposeGraphLinks.includes(link))
+    !Array.isArray(probeGraphLinks) ||
+    expectedGraphLinks.some((link) => !probeGraphLinks.includes(link))
   ) {
-    throw new Error("Previous and Next article links are missing from Quartz's graph data");
+    throw new Error("Article navigation or related links are missing from Quartz's graph data");
   }
 
-  const purposeHtml = await readFile(
-    path.join(withoutPanels, cases.articleNavigationFolder, "purpose-statement.html"),
-    "utf8",
-  );
-  const alphaBacklink = purposeHtml.indexOf("Alpha system prompt crafting");
-  const zuluBacklink = purposeHtml.indexOf("Zulu thesis topic overview");
-  if (alphaBacklink < 0 || zuluBacklink < 0 || alphaBacklink > zuluBacklink) {
+  for (const [source, targets] of Object.entries(cases.articleNavigationReferences)) {
+    const links = contentIndex[source]?.links;
+    if (!Array.isArray(links) || targets.some((target) => !links.includes(target))) {
+      throw new Error(`Random fixture references were not resolved for ${source}`);
+    }
+  }
+
+  const probeHtml = await readFile(path.join(withoutPanels, `${probe.slug}.html`), "utf8");
+  const previousBacklink = probeHtml.indexOf(probe.previousTitle);
+  const nextBacklink = probeHtml.indexOf(probe.nextTitle);
+  if (previousBacklink < 0 || nextBacklink < 0 || previousBacklink > nextBacklink) {
     throw new Error("Article Navigator fixture does not begin with alphabetical Backlinks order");
   }
 

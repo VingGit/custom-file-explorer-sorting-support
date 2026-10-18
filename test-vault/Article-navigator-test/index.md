@@ -9,3 +9,5 @@ sorting-spec: |
 # Article Navigator test
 
 The article names deliberately disagree with their created-date order.
+
+Related: [[Copper Kite]] and [[25-files-first/folder-3]].
