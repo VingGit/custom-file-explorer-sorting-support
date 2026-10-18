@@ -18,7 +18,9 @@ This package brings SebastianMC Custom File Explorer Sorting specifications to Q
 - `src/engine.ts` owns Quartz data mapping and ordering semantics.
 - Hidden items are navigation-only. This plugin is not a Quartz publication filter.
 - `SORTING_SERVICE_SYMBOL` and its API version are the optional integration contract for other navigation plugins. Keep it dependency-free and backward-compatible within the major API version.
-- `static/custom-file-explorer-sorting.json` is the client Explorer contract. Treat its version as public.
+- `static/custom-file-explorer-sorting.json` is the client Explorer, Backlinks,
+  and optional article-navigation contract. Treat its version as public and
+  keep new version-1 fields additive.
 - `dist/` is committed installation output. Never edit it by hand; rebuild it from source.
 - `test-vault/` is the repository-owned integration fixture. Keep every upstream sorting order represented by a first-level folder and regenerate it only with `npm run fixture:generate`.
 - `scripts/run-quartz-integration.mjs` must build the bundled vault against Quartz 5 both without and with Root Index Panels, verify both outputs, and leave publishable artifacts under ignored `integration-output/`.

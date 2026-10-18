@@ -67,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full parsing and Quartz navigation support for Custom File Explorer Sorting specifications.
 - Stock Explorer ordering through a generated, versioned manifest.
 - An optional server-side sorting service for compatible navigation plugins.
+- Stock Quartz Backlinks ordering that follows the same hierarchical sorting rules as Explorer.
+- Optional Article Navigator property detection, navigation-backlink filtering, and responsive Previous/Next cards using Quartz theme variables.
 - Conformance, build, and scheduled upstream-compatibility checks.
 - A comprehensive bundled test vault and dual Quartz integration-site workflow.
 

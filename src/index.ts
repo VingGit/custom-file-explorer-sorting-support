@@ -7,6 +7,9 @@ export {
 } from "./engine";
 export { EXPLORER_MANIFEST_PATH, SORTING_SERVICE_SYMBOL } from "./types";
 export type {
+  ArticleNavigationLink,
+  ArticleNavigationManifest,
+  ArticleNavigationPage,
   CustomFileExplorerSortingOptions,
   ExplorerOrderManifest,
   QuartzNavigationSortingService,

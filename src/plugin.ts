@@ -3,11 +3,16 @@ import path from "node:path";
 
 import type { BuildCtx, FilePath, ProcessedContent, QuartzEmitterPluginInstance } from "./quartz";
 
+import {
+  buildArticleNavigationManifest,
+  resolveArticleNavigationProperties,
+} from "./article-navigation";
 import { buildExplorerOrderManifest, createSortingService, normalizeOptions } from "./engine";
 import type { CustomFileExplorerSortingOptions } from "./types";
 import { EXPLORER_MANIFEST_PATH, SORTING_SERVICE_SYMBOL } from "./types";
 // @ts-expect-error - `.inline.ts` is compiled to a browser script string by the build loader.
 import explorerScript from "./scripts/explorer.inline.ts";
+import articleNavigationStyles from "./styles/article-navigation.scss";
 
 function contentData(content: ProcessedContent[]): unknown[] {
   return content.map(([, file]) => file.data);
@@ -18,7 +23,12 @@ async function emitManifest(
   content: ProcessedContent[],
   options: CustomFileExplorerSortingOptions,
 ): Promise<FilePath[]> {
-  const manifest = buildExplorerOrderManifest(contentData(content), options);
+  const allFiles = contentData(content);
+  const manifest = buildExplorerOrderManifest(allFiles, options);
+  if (options.articleNavigation) {
+    const properties = await resolveArticleNavigationProperties(ctx, options);
+    manifest.articleNavigation = buildArticleNavigationManifest(allFiles, options, properties);
+  }
   const outputPath = path.join(ctx.argv.output, ...EXPLORER_MANIFEST_PATH.split("/"));
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.writeFile(outputPath, `${JSON.stringify(manifest)}\n`, "utf8");
@@ -41,7 +51,9 @@ export function CustomFileExplorerSortingSupport(
     name: "CustomFileExplorerSortingSupport",
     externalResources() {
       return {
-        css: [],
+        css: options.articleNavigation
+          ? [{ content: articleNavigationStyles, inline: true, spaPreserve: true }]
+          : [],
         js: [
           {
             contentType: "inline",

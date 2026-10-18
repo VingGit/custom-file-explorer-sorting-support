@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  compareManifestPaths,
+  isArticleNavigationBacklink,
   manifestKeyFromHref,
   manifestUrlFromDocument,
   normalizePath,
@@ -60,5 +62,47 @@ describe("browser navigation adapter", () => {
   it("normalizes index routes to the owning folder", () => {
     expect(normalizePath("week1/exercises/index.html")).toBe("week1/exercises");
     expect(normalizePath("index")).toBe("/");
+  });
+
+  it("orders backlinks by the same hierarchical rules as Explorer", () => {
+    const manifest = {
+      version: 1 as const,
+      folders: {
+        "/": {
+          order: ["folder:Later book", "folder:Earlier book"],
+          hidden: [],
+        },
+        "Later book": {
+          order: ["file:Later book/Zulu earlier", "file:Later book/Alpha later"],
+          hidden: [],
+        },
+      },
+    };
+
+    expect(
+      compareManifestPaths("Later book/Zulu earlier", "Later book/Alpha later", manifest),
+    ).toBeLessThan(0);
+    expect(
+      compareManifestPaths("Later book/Alpha later", "Earlier book/Anything", manifest),
+    ).toBeLessThan(0);
+  });
+
+  it("identifies backlinks created by Previous and Next article properties", () => {
+    const manifest = {
+      version: 1 as const,
+      folders: {},
+      articleNavigation: {
+        previousProperty: "PreviousArticle",
+        nextProperty: "NextArticle",
+        pages: {
+          "Diary/Source": {
+            next: { slug: "Diary/Current", title: "Current" },
+          },
+        },
+      },
+    };
+
+    expect(isArticleNavigationBacklink("Diary/Source", "Diary/Current", manifest)).toBe(true);
+    expect(isArticleNavigationBacklink("Diary/Source", "Diary/Other", manifest)).toBe(false);
   });
 });

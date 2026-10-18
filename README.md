@@ -2,7 +2,7 @@
 
 Use the same `sorting-spec` frontmatter in Obsidian and on a Quartz 5 site.
 
-This plugin reads the syntax from SebastianMC's [Custom File Explorer Sorting](https://github.com/SebastianMC/obsidian-custom-sort) plugin. It applies those rules to Quartz's stock Explorer and folder-page directory overviews, and exposes the same ordering to compatible navigation plugins such as [Root Index Panels](https://github.com/VingGit/root-index-panels).
+This plugin reads the syntax from SebastianMC's [Custom File Explorer Sorting](https://github.com/SebastianMC/obsidian-custom-sort) plugin. It applies those rules to Quartz's stock Explorer, folder-page directory overviews, and Backlinks lists, and exposes the same ordering to compatible navigation plugins such as [Root Index Panels](https://github.com/VingGit/root-index-panels).
 
 It releases in version lockstep with Root Index Panels and
 [Root Books Toolkit](https://github.com/VingGit/obsidian-root-books-workspace). Matching
@@ -77,23 +77,39 @@ plugins:
       specProperty: sorting-spec
       bookmarksOrderProperty: bookmarks-order
       iconProperty: icon
+      articleNavigation: false
+      previousArticleProperty: PreviousArticle
+      nextArticleProperty: NextArticle
 ```
 
-| Option                   | Default           | Purpose                                                                   |
-| ------------------------ | ----------------- | ------------------------------------------------------------------------- |
-| `specProperty`           | `sorting-spec`    | Frontmatter property containing the multiline sorting specification.      |
-| `bookmarksOrderProperty` | `bookmarks-order` | Positive numeric property used for bookmark ordering and bookmark groups. |
-| `iconProperty`           | `icon`            | Property used by `with-icon:` groups; `panel.<property>` is also checked. |
+| Option                    | Default           | Purpose                                                                           |
+| ------------------------- | ----------------- | --------------------------------------------------------------------------------- |
+| `specProperty`            | `sorting-spec`    | Frontmatter property containing the multiline sorting specification.              |
+| `bookmarksOrderProperty`  | `bookmarks-order` | Positive numeric property used for bookmark ordering and bookmark groups.         |
+| `iconProperty`            | `icon`            | Property used by `with-icon:` groups; `panel.<property>` is also checked.         |
+| `articleNavigation`       | `false`           | Replace Previous/Next-property backlinks with navigation cards below the article. |
+| `previousArticleProperty` | `PreviousArticle` | Previous-link fallback property when Article Navigator settings cannot be read.   |
+| `nextArticleProperty`     | `NextArticle`     | Next-link fallback property when Article Navigator settings cannot be read.       |
+
+Backlinks are always reordered to match the hierarchical Explorer order. Set
+`articleNavigation: true` to additionally replace backlinks created by the
+Previous/Next properties with responsive navigation cards below Quartz's ending
+line. Those links remain in Quartz's local and global graphs; only their rows in
+the Backlinks list are hidden. If the vault contains
+`.obsidian/plugins/article-navigator/data.json`, the plugin reads
+`previousKey` and `nextKey` from it automatically. The two configured property
+options are used only as fallbacks. The cards use Quartz color variables, so
+light mode, dark mode, and custom themes control their appearance.
 
 ## How it works
 
-During a Quartz build, the plugin parses the source notes with the upstream parser and emits `static/custom-file-explorer-sorting.json`. A small browser script applies that deterministic order whenever the Explorer or a folder-page directory overview renders, including after SPA navigation. Compatible server-rendered navigation plugins use a versioned in-process sorting service, so the root book selector and nested sidebars follow the same rules before HTML is written.
+During a Quartz build, the plugin parses the source notes with the upstream parser and emits `static/custom-file-explorer-sorting.json`. A small browser script applies that deterministic order whenever the Explorer, a folder-page directory overview, or a Backlinks list renders, including after SPA navigation. When article navigation is enabled, the same manifest carries resolved Previous/Next targets for the optional cards and navigation-backlink filtering. Compatible server-rendered navigation plugins use a versioned in-process sorting service, so the root book selector and nested sidebars follow the same rules before HTML is written.
 
 The upstream parser is pinned to an audited commit. A scheduled weekly compatibility workflow tests the newest upstream checkout and deliberately alerts when the commit or version changes, even if the existing conformance suite still passes.
 
 ## Integration test vault
 
-The repository includes a self-contained [test vault](test-vault). Its first-level folders cover every sorting order recognized by the upstream parser, including both directions and aliases, plus metadata extractors, secondary ordering, groups, priorities, matching rules, integrations, and navigation-only hiding.
+The repository includes a self-contained [test vault](test-vault). Its first-level folders cover every sorting order recognized by the upstream parser, including both directions and aliases, plus metadata extractors, secondary ordering, groups, priorities, matching rules, integrations, navigation-only hiding, backlink ordering, and Article Navigator interoperability.
 
 The Quartz integration workflow builds that same vault twice:
 

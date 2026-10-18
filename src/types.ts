@@ -18,6 +18,12 @@ export interface CustomFileExplorerSortingOptions {
   bookmarksOrderProperty: string;
   /** Frontmatter property used by `with-icon:` groups. */
   iconProperty: string;
+  /** Replace navigation-only backlinks with Previous and Next article cards. */
+  articleNavigation: boolean;
+  /** Fallback property used when Article Navigator settings cannot be detected. */
+  previousArticleProperty: string;
+  /** Fallback property used when Article Navigator settings cannot be detected. */
+  nextArticleProperty: string;
 }
 
 export interface QuartzSortInput<T = unknown> {
@@ -51,6 +57,23 @@ export interface ExplorerOrderManifest {
       hidden: string[];
     }
   >;
+  articleNavigation?: ArticleNavigationManifest;
+}
+
+export interface ArticleNavigationLink {
+  slug: string;
+  title: string;
+}
+
+export interface ArticleNavigationPage {
+  previous?: ArticleNavigationLink;
+  next?: ArticleNavigationLink;
+}
+
+export interface ArticleNavigationManifest {
+  previousProperty: string;
+  nextProperty: string;
+  pages: Record<string, ArticleNavigationPage>;
 }
 
 export const SORTING_SERVICE_SYMBOL = "@vinggit/custom-file-explorer-sorting-support/service/v1";

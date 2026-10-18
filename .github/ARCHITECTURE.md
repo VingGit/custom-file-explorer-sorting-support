@@ -6,9 +6,11 @@ The emitter receives all processed Quartz files. `src/model.ts` turns their slug
 
 `src/engine.ts` passes every multiline specification to the exact upstream parser pinned in `package.json`. It resolves target rules in upstream order: exact path, folder name, then wildcard or regular expression. Sorting is applied to opaque caller values so server-rendered components can use it without sharing their node types.
 
-## Stock Explorer and folder pages
+## Browser navigation surfaces
 
-The emitter writes a versioned JSON manifest containing ordered and hidden child keys for each matched folder. The inline script fetches that manifest, observes stock Explorer and folder-page directory-list rendering, and reorders the existing DOM after initial load and SPA navigation. Folder links are resolved against the manifest so their `index.md` metadata participates in the same order as Explorer. It does not alter content publication.
+The emitter writes a versioned JSON manifest containing ordered and hidden child keys for each matched folder. The inline script fetches that manifest, observes stock Explorer, folder-page directory-list, and Backlinks rendering, and reorders the existing DOM after initial load and SPA navigation. Folder links are resolved against the manifest so their `index.md` metadata participates in the same order as Explorer. Backlinks use the same hierarchy of folder and file ranks, with Quartz's natural path order as the fallback where no sorting specification applies. It does not alter content publication.
+
+When `articleNavigation` is enabled, the emitter first tries to read Article Navigator's `previousKey` and `nextKey` from the vault's `.obsidian/plugins/article-navigator/data.json`; configured key names are the fallback. Resolved targets are added to the version-1 manifest as optional data. The browser adapter hides only the Backlinks-list entries created by those properties and renders Previous/Next cards after Quartz's article-ending rule. It does not mutate Quartz's content index, so those relationships remain visible in local and global graphs. The CSS uses only Quartz theme variables and therefore follows light, dark, and custom themes.
 
 ## Compatible navigation components
 

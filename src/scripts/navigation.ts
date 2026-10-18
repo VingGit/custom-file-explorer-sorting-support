@@ -6,12 +6,29 @@ interface ManifestRule {
 interface ExplorerOrderManifest {
   version: 1;
   folders: Record<string, ManifestRule>;
+  articleNavigation?: {
+    previousProperty: string;
+    nextProperty: string;
+    pages: Record<
+      string,
+      {
+        previous?: { slug: string; title: string };
+        next?: { slug: string; title: string };
+      }
+    >;
+  };
 }
 
 interface RankedItem<T> {
   value: T;
   key?: string;
 }
+
+const naturalCompare = new Intl.Collator(undefined, {
+  usage: "sort",
+  sensitivity: "base",
+  numeric: true,
+}).compare;
 
 export function normalizePath(value: unknown): string {
   let path = String(value || "")
@@ -48,6 +65,71 @@ function pathFromUrl(href: string, locationHref: string, basePath: string): stri
   } catch {
     return undefined;
   }
+}
+
+function pathParts(path: string): string[] {
+  const normalized = normalizePath(path);
+  return normalized === "/" ? [] : normalized.split("/").filter(Boolean);
+}
+
+function childKey(parts: string[], depth: number, rule: ManifestRule | undefined): string {
+  const childPath = parts.slice(0, depth + 1).join("/");
+  const folderKey = `folder:${childPath}`;
+  const fileKey = `file:${childPath}`;
+  if (rule && ruleKeys(rule).has(folderKey)) return folderKey;
+  return depth < parts.length - 1 ? folderKey : fileKey;
+}
+
+function childRank(rule: ManifestRule | undefined, key: string): number | undefined {
+  if (!rule) return undefined;
+  const rank = rule.order.indexOf(key);
+  return rank < 0 ? undefined : rank;
+}
+
+/** Compare two page paths by their position in the hierarchical Explorer order. */
+export function compareManifestPaths(
+  leftPath: string,
+  rightPath: string,
+  manifest: ExplorerOrderManifest,
+): number {
+  const left = pathParts(leftPath);
+  const right = pathParts(rightPath);
+  const sharedDepth = Math.min(left.length, right.length);
+
+  for (let depth = 0; depth < sharedDepth; depth += 1) {
+    const parent = depth === 0 ? "/" : left.slice(0, depth).join("/");
+    const rightParent = depth === 0 ? "/" : right.slice(0, depth).join("/");
+    if (parent !== rightParent) {
+      return naturalCompare(left[depth] ?? "", right[depth] ?? "");
+    }
+
+    const rule = manifest.folders[parent];
+    const leftRank = childRank(rule, childKey(left, depth, rule));
+    const rightRank = childRank(rule, childKey(right, depth, rule));
+    if (leftRank !== undefined && rightRank !== undefined && leftRank !== rightRank) {
+      return leftRank - rightRank;
+    }
+    if (leftRank !== undefined && rightRank === undefined) return -1;
+    if (leftRank === undefined && rightRank !== undefined) return 1;
+
+    const segmentResult = naturalCompare(left[depth] ?? "", right[depth] ?? "");
+    if (segmentResult !== 0) return segmentResult;
+  }
+
+  return left.length - right.length;
+}
+
+export function isArticleNavigationBacklink(
+  sourcePath: string,
+  currentPath: string,
+  manifest: ExplorerOrderManifest,
+): boolean {
+  const source = manifest.articleNavigation?.pages[normalizePath(sourcePath)];
+  const current = normalizePath(currentPath);
+  return (
+    (!!source?.previous && normalizePath(source.previous.slug) === current) ||
+    (!!source?.next && normalizePath(source.next.slug) === current)
+  );
 }
 
 function ruleKeys(rule: ManifestRule): Set<string> {
@@ -201,6 +283,116 @@ function applyFolderPageList(
   applyRule(list, described, rule);
 }
 
+function applyBacklinkList(
+  list: Element,
+  manifest: ExplorerOrderManifest,
+  currentPath: string,
+  locationHref: string,
+  basePath: string,
+): void {
+  const end = list.querySelector<HTMLElement>(":scope > .overflow-end");
+  const items = directElements(list, "overflow-end");
+  const described = items.map((value, index) => {
+    const link = value.querySelector<HTMLAnchorElement>("a.internal");
+    const path = link ? pathFromUrl(link.href, locationHref, basePath) : undefined;
+    const navigationOnly =
+      !!path &&
+      !!manifest.articleNavigation &&
+      isArticleNavigationBacklink(path, currentPath, manifest);
+    value.hidden = navigationOnly;
+    if (navigationOnly) value.dataset.cfesNavigationBacklink = "true";
+    else delete value.dataset.cfesNavigationBacklink;
+    return { value, index, path };
+  });
+
+  const ordered = [...described].sort((left, right) => {
+    if (!left.path && !right.path) return left.index - right.index;
+    if (!left.path) return 1;
+    if (!right.path) return -1;
+    return compareManifestPaths(left.path, right.path, manifest) || left.index - right.index;
+  });
+  if (ordered.some(({ value }, index) => value !== described[index]?.value)) {
+    for (const { value } of ordered) list.insertBefore(value, end ?? null);
+  }
+
+  const backlinks = list.closest<HTMLElement>(".backlinks");
+  if (!backlinks) return;
+  const linkedItems = described.filter(({ path }) => path !== undefined);
+  const allNavigationOnly =
+    linkedItems.length > 0 && linkedItems.every(({ value }) => value.hidden === true);
+  if (allNavigationOnly) {
+    backlinks.hidden = true;
+    backlinks.dataset.cfesNavigationBacklinksHidden = "true";
+  } else if (backlinks.dataset.cfesNavigationBacklinksHidden === "true") {
+    backlinks.hidden = false;
+    delete backlinks.dataset.cfesNavigationBacklinksHidden;
+  }
+}
+
+function articleHref(slug: string, basePath: string, locationHref: string): string {
+  const encoded = [basePath, normalizePath(slug)]
+    .filter((part) => part && part !== "/")
+    .flatMap((part) => part.split("/"))
+    .map(encodeURIComponent)
+    .join("/");
+  return new URL(`/${encoded}`, locationHref).pathname;
+}
+
+function navigationSlot(
+  direction: "previous" | "next",
+  link: { slug: string; title: string },
+  basePath: string,
+  locationHref: string,
+): HTMLElement {
+  const slot = document.createElement("div");
+  slot.className = `cfes-article-navigation-slot cfes-article-navigation-${direction}`;
+
+  const anchor = document.createElement("a");
+  anchor.className = "internal cfes-article-navigation-link";
+  anchor.href = articleHref(link.slug, basePath, locationHref);
+  anchor.setAttribute(
+    "aria-label",
+    `${direction === "previous" ? "Previous" : "Next"}: ${link.title}`,
+  );
+
+  const label = document.createElement("div");
+  label.className = "cfes-article-navigation-label";
+  label.textContent = direction === "previous" ? "‹ Previous" : "Next ›";
+  const title = document.createElement("div");
+  title.className = "cfes-article-navigation-title";
+  title.textContent = link.title;
+  anchor.append(label, title);
+  slot.appendChild(anchor);
+  return slot;
+}
+
+function applyArticleNavigation(
+  document: Document,
+  manifest: ExplorerOrderManifest,
+  currentPath: string,
+  locationHref: string,
+  basePath: string,
+): void {
+  document.querySelector(".cfes-article-navigation")?.remove();
+  const page = manifest.articleNavigation?.pages[normalizePath(currentPath)];
+  if (!page || (!page.previous && !page.next)) return;
+
+  const center = document.querySelector("#quartz-body > .center");
+  const footer = center?.querySelector(":scope > .page-footer");
+  if (!center || !footer) return;
+
+  const navigation = document.createElement("nav");
+  navigation.className = "cfes-article-navigation";
+  navigation.setAttribute("aria-label", "Article navigation");
+  if (page.previous) {
+    navigation.appendChild(navigationSlot("previous", page.previous, basePath, locationHref));
+  }
+  if (page.next) {
+    navigation.appendChild(navigationSlot("next", page.next, basePath, locationHref));
+  }
+  center.insertBefore(navigation, footer);
+}
+
 export function applyNavigationSorting(
   document: Document,
   manifest: ExplorerOrderManifest,
@@ -216,4 +408,9 @@ export function applyNavigationSorting(
   for (const list of document.querySelectorAll(".page-listing ul.section-ul")) {
     applyFolderPageList(list, folderPath, manifest, locationHref, basePath);
   }
+
+  for (const list of document.querySelectorAll(".backlinks ul.overflow")) {
+    applyBacklinkList(list, manifest, folderPath, locationHref, basePath);
+  }
+  applyArticleNavigation(document, manifest, folderPath, locationHref, basePath);
 }

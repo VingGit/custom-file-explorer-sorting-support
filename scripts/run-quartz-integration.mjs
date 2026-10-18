@@ -78,6 +78,30 @@ async function quartz(...args) {
   await run(process.execPath, ["quartz/bootstrap-cli.mjs", ...args], quartzRoot);
 }
 
+async function enableArticleNavigation() {
+  const configPath = path.join(quartzRoot, "quartz.config.yaml");
+  const config = await readFile(configPath, "utf8");
+  const pluginStart = config.indexOf(`  - source: ${sortingPluginRoot}`);
+  if (pluginStart < 0) throw new Error("Sorting plugin configuration is missing");
+  const nextPlugin = config.indexOf("\n  - source:", pluginStart + 1);
+  const pluginEnd = nextPlugin < 0 ? config.length : nextPlugin;
+  const block = config.slice(pluginStart, pluginEnd);
+  if (!block.includes("articleNavigation: false")) {
+    throw new Error("Sorting plugin did not expose the articleNavigation option");
+  }
+  const configured = block
+    .replace("articleNavigation: false", "articleNavigation: true")
+    .replace(
+      "previousArticleProperty: PreviousArticle",
+      "previousArticleProperty: FallbackPrevious",
+    )
+    .replace("nextArticleProperty: NextArticle", "nextArticleProperty: FallbackNext");
+  await writeFile(
+    configPath,
+    `${config.slice(0, pluginStart)}${configured}${config.slice(pluginEnd)}`,
+  );
+}
+
 function orderedFolderKeys(manifest, folder) {
   const entry = manifest.folders[folder];
   if (!entry) throw new Error(`Sorting manifest has no entry for ${folder}`);
@@ -96,11 +120,12 @@ async function verifySites() {
   }
 
   const manifest = JSON.parse(withManifestText);
-  const expectedRootFolders = [...cases.folders].sort((left, right) =>
+  const rootFolders = [...cases.folders, cases.articleNavigationFolder];
+  const expectedRootFolders = [...rootFolders].sort((left, right) =>
     left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" }),
   );
   const actualRootFolders = orderedFolderKeys(manifest, "/").filter((folder) =>
-    cases.folders.includes(folder),
+    rootFolders.includes(folder),
   );
   if (JSON.stringify(actualRootFolders) !== JSON.stringify(expectedRootFolders)) {
     throw new Error(
@@ -119,6 +144,61 @@ async function verifySites() {
     if (!manifest.folders[folder]) {
       throw new Error(`Sorting manifest did not include target-rule folder ${folder}`);
     }
+  }
+
+  const articleRule = manifest.folders[cases.articleNavigationFolder];
+  if (!articleRule) {
+    throw new Error("Sorting manifest has no Article Navigator fixture rule");
+  }
+  const articleOrder = articleRule.order
+    .filter((key) => key.startsWith("file:"))
+    .map((key) => key.slice("file:".length));
+  if (JSON.stringify(articleOrder) !== JSON.stringify(cases.articleNavigationOrder)) {
+    throw new Error(
+      `Article order differs from created metadata:\nexpected ${JSON.stringify(cases.articleNavigationOrder)}\nactual   ${JSON.stringify(articleOrder)}`,
+    );
+  }
+  const articleNavigation = manifest.articleNavigation;
+  if (
+    articleNavigation?.previousProperty !== "PreviousArticle" ||
+    articleNavigation?.nextProperty !== "NextArticle"
+  ) {
+    throw new Error("Article Navigator property names were not detected from its settings file");
+  }
+  const purposeNavigation =
+    articleNavigation.pages[`${cases.articleNavigationFolder}/purpose-statement`];
+  if (
+    purposeNavigation?.previous?.slug !==
+      `${cases.articleNavigationFolder}/alpha-system-prompt-crafting` ||
+    purposeNavigation?.next?.slug !== `${cases.articleNavigationFolder}/zulu-thesis-topic-overview`
+  ) {
+    throw new Error("Purpose statement navigation targets were not resolved correctly");
+  }
+
+  const contentIndex = JSON.parse(
+    await readFile(path.join(withoutPanels, "static", "contentIndex.json"), "utf8"),
+  );
+  const purposeGraphLinks =
+    contentIndex[`${cases.articleNavigationFolder}/purpose-statement`]?.links;
+  const expectedGraphLinks = [
+    `${cases.articleNavigationFolder}/alpha-system-prompt-crafting`,
+    `${cases.articleNavigationFolder}/zulu-thesis-topic-overview`,
+  ];
+  if (
+    !Array.isArray(purposeGraphLinks) ||
+    expectedGraphLinks.some((link) => !purposeGraphLinks.includes(link))
+  ) {
+    throw new Error("Previous and Next article links are missing from Quartz's graph data");
+  }
+
+  const purposeHtml = await readFile(
+    path.join(withoutPanels, cases.articleNavigationFolder, "purpose-statement.html"),
+    "utf8",
+  );
+  const alphaBacklink = purposeHtml.indexOf("Alpha system prompt crafting");
+  const zuluBacklink = purposeHtml.indexOf("Zulu thesis topic overview");
+  if (alphaBacklink < 0 || zuluBacklink < 0 || alphaBacklink > zuluBacklink) {
+    throw new Error("Article Navigator fixture does not begin with alphabetical Backlinks order");
   }
 
   const withoutRootHtml = await readFile(path.join(withoutPanels, "index.html"), "utf8");
@@ -149,16 +229,26 @@ async function verifySites() {
   ].map((match) => match[1]);
   let foundExplorerAdapter = false;
   let foundFolderPageAdapter = false;
+  let foundBacklinksAdapter = false;
+  let foundArticleNavigationAdapter = false;
   for (const resource of resourceNames) {
     const contents = await readFile(path.join(withoutPanels, "static", resource), "utf8");
     if (contents.includes("custom-file-explorer-sorting.json")) foundExplorerAdapter = true;
     if (contents.includes(".page-listing ul.section-ul")) foundFolderPageAdapter = true;
+    if (contents.includes(".backlinks ul.overflow")) foundBacklinksAdapter = true;
+    if (contents.includes("cfes-article-navigation")) foundArticleNavigationAdapter = true;
   }
   if (!foundExplorerAdapter) {
     throw new Error("The stock Explorer sorting browser adapter was not emitted");
   }
   if (!foundFolderPageAdapter) {
     throw new Error("The folder-page sorting browser adapter was not emitted");
+  }
+  if (!foundBacklinksAdapter) {
+    throw new Error("The Backlinks sorting browser adapter was not emitted");
+  }
+  if (!foundArticleNavigationAdapter) {
+    throw new Error("The article-navigation browser adapter was not emitted");
   }
 
   const folderPageHtml = await readFile(
@@ -203,6 +293,7 @@ await prepareSortingPlugin();
 await run("npm", ["ci", "--no-audit", "--no-fund"], quartzRoot);
 await quartz("plugin", "add", sortingPluginRoot);
 await quartz("plugin", "enable", "custom-file-explorer-sorting-support");
+await enableArticleNavigation();
 await quartz("build", "--output", withoutPanels);
 await prepareRootIndexPanels();
 await quartz("plugin", "add", rootIndexRoot);

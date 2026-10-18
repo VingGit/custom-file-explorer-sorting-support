@@ -52,8 +52,8 @@ const observer = new MutationObserver((records) => {
   if (
     records.some((record) =>
       record.target instanceof Element
-        ? record.target.closest("div.explorer, .page-listing") ||
-          record.target.matches("div.explorer, .page-listing")
+        ? record.target.closest("div.explorer, .page-listing, .backlinks") ||
+          record.target.matches("div.explorer, .page-listing, .backlinks")
         : false,
     )
   ) {

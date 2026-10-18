@@ -1,8 +1,320 @@
 import { createRequire } from 'module';
-import fs from 'fs/promises';
+import fs2 from 'fs/promises';
 import path from 'path';
 
 createRequire(import.meta.url);
+
+// src/model.ts
+function isRecord(value) {
+  try {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  } catch {
+    return false;
+  }
+}
+function ownValue(value, key) {
+  if (!isRecord(value)) return void 0;
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return descriptor && "value" in descriptor ? descriptor.value : void 0;
+  } catch {
+    return void 0;
+  }
+}
+function ownString(value, key) {
+  const item = ownValue(value, key);
+  return typeof item === "string" && item.length > 0 ? item : void 0;
+}
+function normalizeSlashes(value) {
+  return value.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/{2,}/g, "/");
+}
+function normalizeCanonicalPath(value) {
+  if (typeof value !== "string") return void 0;
+  let normalized = normalizeSlashes(value).replace(/^\/+|\/+$/g, "");
+  if (normalized.length === 0) return void 0;
+  normalized = normalized.replace(/\.(?:md|markdown|canvas|base)$/i, "");
+  return normalized;
+}
+function normalizeFolderPath(value) {
+  const normalized = normalizeCanonicalPath(value);
+  if (!normalized || normalized === "index") return "/";
+  return normalized.endsWith("/index") ? normalized.slice(0, -"/index".length) || "/" : normalized;
+}
+function sourcePathOf(value, slug) {
+  const raw = ownString(value, "relativePath") ?? ownString(value, "filePath") ?? `${slug}.md`;
+  return normalizeSlashes(raw).replace(/^\/+/, "");
+}
+function fileNameOf(sourcePath) {
+  return sourcePath.split("/").at(-1) ?? sourcePath;
+}
+function basenameOf(fileName) {
+  return fileName.replace(/\.(?:md|markdown|canvas|base)$/i, "");
+}
+function toTimestamp(value) {
+  try {
+    if (value instanceof Date) {
+      const timestamp = Date.prototype.getTime.call(value);
+      return Number.isFinite(timestamp) ? timestamp : void 0;
+    }
+  } catch {
+    return void 0;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? timestamp : void 0;
+  }
+  return void 0;
+}
+function firstTimestamp(...values) {
+  for (const value of values) {
+    const timestamp = toTimestamp(value);
+    if (timestamp !== void 0) return timestamp;
+  }
+  return 0;
+}
+function toFileRecord(value) {
+  const slug = normalizeCanonicalPath(ownValue(value, "slug"));
+  if (!slug) return void 0;
+  const sourcePath = sourcePathOf(value, slug);
+  const fileName = fileNameOf(sourcePath);
+  const frontmatterValue = ownValue(value, "frontmatter");
+  const frontmatter = isRecord(frontmatterValue) ? frontmatterValue : {};
+  const datesValue = ownValue(value, "dates");
+  const dates = isRecord(datesValue) ? datesValue : {};
+  return {
+    slug,
+    sourcePath,
+    fileName,
+    basename: basenameOf(fileName),
+    frontmatter,
+    created: firstTimestamp(
+      ownValue(dates, "created"),
+      ownValue(value, "created"),
+      ownValue(frontmatter, "created"),
+      ownValue(frontmatter, "date")
+    ),
+    modified: firstTimestamp(
+      ownValue(dates, "modified"),
+      ownValue(value, "modified"),
+      ownValue(value, "updated"),
+      ownValue(frontmatter, "modified"),
+      ownValue(frontmatter, "updated"),
+      ownValue(frontmatter, "date")
+    )
+  };
+}
+function sourceDirectoryParts(file) {
+  const parts = file.sourcePath.split("/").filter(Boolean);
+  parts.pop();
+  return parts;
+}
+function canonicalDirectoryParts(file) {
+  const parts = file.slug.split("/").filter(Boolean);
+  if (parts.at(-1) === "index") parts.pop();
+  else parts.pop();
+  return parts;
+}
+function ensureFolder(folders, canonicalParts, sourceParts, depth) {
+  const canonicalPath = canonicalParts.slice(0, depth).join("/") || "/";
+  const existing = folders.get(canonicalPath);
+  if (existing) return existing;
+  const sourceSlice = sourceParts.slice(0, depth);
+  const sourcePath = sourceSlice.join("/") || "/";
+  const fallbackName = canonicalParts[depth - 1] ?? "";
+  const folder = {
+    canonicalPath,
+    sourcePath,
+    name: sourceSlice.at(-1) ?? fallbackName,
+    directFiles: [],
+    descendantFiles: []
+  };
+  folders.set(canonicalPath, folder);
+  return folder;
+}
+function safeArray(value) {
+  try {
+    return Array.isArray(value) ? Array.from(value) : [];
+  } catch {
+    return [];
+  }
+}
+function buildVaultModel(values, options) {
+  const files = /* @__PURE__ */ new Map();
+  const folders = /* @__PURE__ */ new Map();
+  folders.set("/", {
+    canonicalPath: "/",
+    sourcePath: "/",
+    name: "",
+    directFiles: [],
+    descendantFiles: []
+  });
+  for (const value of safeArray(values)) {
+    const file = toFileRecord(value);
+    if (!file || files.has(file.slug)) continue;
+    files.set(file.slug, file);
+    const canonicalParts = canonicalDirectoryParts(file);
+    const sourceParts = sourceDirectoryParts(file);
+    for (let depth = 1; depth <= canonicalParts.length; depth += 1) {
+      ensureFolder(folders, canonicalParts, sourceParts, depth);
+    }
+  }
+  for (const file of files.values()) {
+    const canonicalParts = canonicalDirectoryParts(file);
+    const parentPath3 = canonicalParts.join("/") || "/";
+    const parent = folders.get(parentPath3);
+    if (!parent) continue;
+    const isIndex = file.slug === "index" || file.slug.endsWith("/index");
+    if (isIndex) parent.index ??= file;
+    if (file.basename === parent.name) parent.folderNote ??= file;
+    parent.directFiles.push(file);
+    parent.descendantFiles.push(file);
+    for (let depth = canonicalParts.length - 1; depth >= 0; depth -= 1) {
+      const ancestorPath = canonicalParts.slice(0, depth).join("/") || "/";
+      folders.get(ancestorPath)?.descendantFiles.push(file);
+    }
+  }
+  const specSources = [];
+  for (const file of files.values()) {
+    const rawSpec = ownValue(file.frontmatter, options.specProperty);
+    if (rawSpec === void 0 || rawSpec === null) continue;
+    if (typeof rawSpec !== "string") {
+      throw new Error(
+        `${file.sourcePath}: frontmatter property "${options.specProperty}" must be a string`
+      );
+    }
+    const canonicalParts = canonicalDirectoryParts(file);
+    const folder = folders.get(canonicalParts.join("/") || "/");
+    specSources.push({
+      folderPath: folder?.sourcePath ?? "/",
+      fileName: file.fileName,
+      text: rawSpec
+    });
+  }
+  specSources.sort(
+    (left, right) => left.folderPath.localeCompare(right.folderPath) || left.fileName.localeCompare(right.fileName)
+  );
+  return { files, folders, specSources };
+}
+function metadataForFolder(folder) {
+  if (!folder) return {};
+  return {
+    ...folder.folderNote?.frontmatter ?? {},
+    ...folder.index?.frontmatter ?? {}
+  };
+}
+function sourceFolderPath(model, canonicalPath) {
+  return model.folders.get(normalizeFolderPath(canonicalPath))?.sourcePath ?? normalizeFolderPath(canonicalPath);
+}
+function sourceFolderName(model, canonicalPath) {
+  const normalized = normalizeFolderPath(canonicalPath);
+  return model.folders.get(normalized)?.name ?? (normalized === "/" ? "" : normalized.split("/").at(-1) ?? "");
+}
+
+// src/article-navigation.ts
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : void 0;
+}
+function firstReference(value) {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const reference2 = firstReference(item);
+      if (reference2) return reference2;
+    }
+    return void 0;
+  }
+  if (typeof value !== "string") return void 0;
+  const trimmed = value.trim();
+  if (!trimmed) return void 0;
+  const wikiLink = trimmed.match(/!?\[\[([^\]]+)\]\]/)?.[1];
+  const markdownLink = trimmed.match(/\[[^\]]*\]\(([^)]+)\)/)?.[1];
+  let reference = (wikiLink ?? markdownLink ?? trimmed).trim();
+  reference = reference.replace(/^<|>$/g, "").split("|")[0]?.split("#")[0]?.trim() ?? "";
+  if (!reference || /^[a-z][a-z\d+.-]*:/i.test(reference)) return void 0;
+  try {
+    reference = decodeURIComponent(reference);
+  } catch {
+  }
+  return reference.replace(/\\/g, "/").replace(/^\/+/, "");
+}
+function comparablePath(value) {
+  return value.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "").toLocaleLowerCase();
+}
+function parentPath(slug) {
+  const separator = slug.lastIndexOf("/");
+  return separator < 0 ? "" : slug.slice(0, separator);
+}
+function resolveReference(model, source, value) {
+  const reference = firstReference(value);
+  if (!reference) return void 0;
+  const withoutExtension = reference.replace(/\.(?:md|markdown)$/i, "");
+  const sourceFolder = parentPath(source.slug);
+  const relative = path.posix.normalize(path.posix.join(sourceFolder, withoutExtension)).replace(/^\.\//, "");
+  const directCandidates = [relative, withoutExtension].map((candidate) => normalizeCanonicalPath(candidate)).filter((candidate) => candidate !== void 0);
+  for (const candidate of directCandidates) {
+    const exact = model.files.get(candidate) ?? model.files.get(`${candidate}/index`);
+    if (exact) return exact;
+    const insensitive = [...model.files.values()].find(
+      (file) => comparablePath(file.slug) === comparablePath(candidate)
+    );
+    if (insensitive) return insensitive;
+  }
+  const basename = comparablePath(withoutExtension.split("/").at(-1) ?? withoutExtension);
+  const matches = [...model.files.values()].filter(
+    (file) => comparablePath(file.basename) === basename
+  );
+  if (matches.length === 1) return matches[0];
+  return matches.find((file) => parentPath(file.slug) === sourceFolder);
+}
+function pageTitle(file) {
+  return nonEmptyString(ownValue(file.frontmatter, "title")) ?? file.basename;
+}
+async function resolveArticleNavigationProperties(ctx, options) {
+  const fallback = {
+    previous: options.previousArticleProperty,
+    next: options.nextArticleProperty
+  };
+  const contentDirectory = ctx.argv?.directory;
+  if (typeof contentDirectory !== "string" || contentDirectory.trim().length === 0) return fallback;
+  try {
+    const settingsPath = path.resolve(
+      contentDirectory,
+      ".obsidian",
+      "plugins",
+      "article-navigator",
+      "data.json"
+    );
+    const parsed = JSON.parse(await fs2.readFile(settingsPath, "utf8"));
+    return {
+      previous: nonEmptyString(ownValue(parsed, "previousKey")) ?? fallback.previous,
+      next: nonEmptyString(ownValue(parsed, "nextKey")) ?? fallback.next
+    };
+  } catch {
+    return fallback;
+  }
+}
+function buildArticleNavigationManifest(allFiles, options, properties) {
+  const model = buildVaultModel(allFiles, options);
+  const pages = /* @__PURE__ */ Object.create(null);
+  for (const source of model.files.values()) {
+    const previous = resolveReference(
+      model,
+      source,
+      ownValue(source.frontmatter, properties.previous)
+    );
+    const next = resolveReference(model, source, ownValue(source.frontmatter, properties.next));
+    if (!previous && !next) continue;
+    pages[source.slug] = {
+      ...previous ? { previous: { slug: previous.slug, title: pageTitle(previous) } } : {},
+      ...next ? { next: { slug: next.slug, title: pageTitle(next) } } : {}
+    };
+  }
+  return {
+    previousProperty: properties.previous,
+    nextProperty: properties.next,
+    pages
+  };
+}
 
 // node_modules/obsidian-custom-sort/src/utils/week-of-year.ts
 var DAY_OF_MILIS = 60 * 60 * 24 * 1e3;
@@ -254,8 +566,8 @@ var MATCH_CHILDREN_1_SUFFIX = `/${MATCH_CHILDREN_PATH_TOKEN}`;
 var MATCH_CHILDREN_2_SUFFIX = `/${MATCH_CHILDREN_PATH_TOKEN}/`;
 var MATCH_ALL_SUFFIX = `/${MATCH_ALL_PATH_TOKEN}`;
 var NO_PRIORITY = 0;
-var splitPath = (path2) => {
-  return path2.split(SLASH).filter((name) => !!name);
+var splitPath = (path3) => {
+  return path3.split(SLASH).filter((name) => !!name);
 };
 var FolderWildcardMatching = class {
   constructor(checkIfImplicitSpec) {
@@ -893,33 +1205,33 @@ var checkAdjacency = (sortingSymbolInfo) => {
     noSuffix: sortingSymbolInfo.suffix.length === 0
   };
 };
-var endsWithWildcardPatternSuffix = (path2) => {
-  return path2.endsWith(MATCH_CHILDREN_1_SUFFIX) || path2.endsWith(MATCH_CHILDREN_2_SUFFIX) || path2.endsWith(MATCH_ALL_SUFFIX);
+var endsWithWildcardPatternSuffix = (path3) => {
+  return path3.endsWith(MATCH_CHILDREN_1_SUFFIX) || path3.endsWith(MATCH_CHILDREN_2_SUFFIX) || path3.endsWith(MATCH_ALL_SUFFIX);
 };
-var stripWildcardPatternSuffix = (path2, ofImplicitSpec) => {
-  if (path2.endsWith(MATCH_ALL_SUFFIX)) {
-    path2 = path2.slice(0, -MATCH_ALL_SUFFIX.length);
+var stripWildcardPatternSuffix = (path3, ofImplicitSpec) => {
+  if (path3.endsWith(MATCH_ALL_SUFFIX)) {
+    path3 = path3.slice(0, -MATCH_ALL_SUFFIX.length);
     return {
-      path: path2.length > 0 ? path2 : "/",
+      path: path3.length > 0 ? path3 : "/",
       detectedWildcardPriority: ofImplicitSpec ? 6 /* MATCH_ALL_IMPLICIT */ : 4 /* MATCH_ALL */
     };
   }
-  if (path2.endsWith(MATCH_CHILDREN_1_SUFFIX)) {
-    path2 = path2.slice(0, -MATCH_CHILDREN_1_SUFFIX.length);
+  if (path3.endsWith(MATCH_CHILDREN_1_SUFFIX)) {
+    path3 = path3.slice(0, -MATCH_CHILDREN_1_SUFFIX.length);
     return {
-      path: path2.length > 0 ? path2 : "/",
+      path: path3.length > 0 ? path3 : "/",
       detectedWildcardPriority: ofImplicitSpec ? 5 /* MATCH_CHILDREN_IMPLICIT */ : 3 /* MATCH_CHILDREN */
     };
   }
-  if (path2.endsWith(MATCH_CHILDREN_2_SUFFIX)) {
-    path2 = path2.slice(0, -MATCH_CHILDREN_2_SUFFIX.length);
+  if (path3.endsWith(MATCH_CHILDREN_2_SUFFIX)) {
+    path3 = path3.slice(0, -MATCH_CHILDREN_2_SUFFIX.length);
     return {
-      path: path2.length > 0 ? path2 : "/",
+      path: path3.length > 0 ? path3 : "/",
       detectedWildcardPriority: ofImplicitSpec ? 5 /* MATCH_CHILDREN_IMPLICIT */ : 3 /* MATCH_CHILDREN */
     };
   }
   return {
-    path: path2,
+    path: path3,
     detectedWildcardPriority: ofImplicitSpec ? 2 /* NO_WILDCARD_IMPLICIT */ : 1 /* NO_WILDCARD */
   };
 };
@@ -1052,9 +1364,9 @@ var SortingSpecProcessor = class {
         }
         for (let spec of this.ctx.specs) {
           for (let idx = 0; idx < spec.targetFoldersPaths.length; idx++) {
-            const path2 = spec.targetFoldersPaths[idx];
-            if (path2.startsWith(MatchFolderNameLexeme)) {
-              const folderNameToMatch = path2.substring(MatchFolderNameLexeme.length).trim();
+            const path3 = spec.targetFoldersPaths[idx];
+            if (path3.startsWith(MatchFolderNameLexeme)) {
+              const folderNameToMatch = path3.substring(MatchFolderNameLexeme.length).trim();
               if (folderNameToMatch === "") {
                 this.problem(
                   26 /* EmptyFolderNameToMatch */,
@@ -1077,10 +1389,10 @@ var SortingSpecProcessor = class {
         }
         for (let spec of this.ctx.specs) {
           for (let idx = 0; idx < spec.targetFoldersPaths.length; idx++) {
-            const path2 = spec.targetFoldersPaths[idx];
-            if (path2.startsWith(MatchFolderByRegexpLexeme)) {
+            const path3 = spec.targetFoldersPaths[idx];
+            if (path3.startsWith(MatchFolderByRegexpLexeme)) {
               collection = ensureCollectionHasSortSpecByWildcard(collection);
-              const folderByRegexpExpression = path2.substring(MatchFolderByRegexpLexeme.length).trim();
+              const folderByRegexpExpression = path3.substring(MatchFolderByRegexpLexeme.length).trim();
               try {
                 const r = consumeFolderByRegexpExpression(folderByRegexpExpression);
                 collection.sortSpecByWildcard.addRegexpDefinition(r.regexp, r.againstName, r.priority, r.log, spec);
@@ -1091,9 +1403,9 @@ var SortingSpecProcessor = class {
                 );
                 return null;
               }
-            } else if (endsWithWildcardPatternSuffix(path2)) {
+            } else if (endsWithWildcardPatternSuffix(path3)) {
               collection = ensureCollectionHasSortSpecByWildcard(collection);
-              const ruleAdded = collection.sortSpecByWildcard.addWildcardDefinition(path2, spec);
+              const ruleAdded = collection.sortSpecByWildcard.addWildcardDefinition(path3, spec);
               if (ruleAdded?.errorMsg) {
                 this.problem(13 /* DuplicateWildcardSortSpecForSameFolder */, ruleAdded?.errorMsg);
                 return null;
@@ -1105,12 +1417,12 @@ var SortingSpecProcessor = class {
           for (let idx = 0; idx < spec.targetFoldersPaths.length; idx++) {
             const originalPath = spec.targetFoldersPaths[idx];
             if (!originalPath.startsWith(MatchFolderNameLexeme) && !originalPath.startsWith(MatchFolderByRegexpLexeme)) {
-              const { path: path2, detectedWildcardPriority } = stripWildcardPatternSuffix(originalPath, !!spec.implicit);
+              const { path: path3, detectedWildcardPriority } = stripWildcardPatternSuffix(originalPath, !!spec.implicit);
               let storeTheSpec = true;
-              const preexistingSortSpecPriority = this.pathMatchPriorityForPath[path2];
+              const preexistingSortSpecPriority = this.pathMatchPriorityForPath[path3];
               if (preexistingSortSpecPriority) {
                 if (preexistingSortSpecPriority === 1 /* NO_WILDCARD */ && detectedWildcardPriority === 1 /* NO_WILDCARD */) {
-                  this.problem(2 /* DuplicateSortSpecForSameFolder */, `Duplicate sorting spec for folder ${path2}`);
+                  this.problem(2 /* DuplicateSortSpecForSameFolder */, `Duplicate sorting spec for folder ${path3}`);
                   return null;
                 } else if (detectedWildcardPriority >= preexistingSortSpecPriority) {
                   storeTheSpec = false;
@@ -1118,8 +1430,8 @@ var SortingSpecProcessor = class {
               }
               if (storeTheSpec) {
                 collection = ensureCollectionHasSortSpecByPath(collection);
-                collection.sortSpecByPath[path2] = spec;
-                this.pathMatchPriorityForPath[path2] = detectedWildcardPriority;
+                collection.sortSpecByPath[path3] = spec;
+                this.pathMatchPriorityForPath[path3] = detectedWildcardPriority;
               }
             }
           }
@@ -1521,11 +1833,11 @@ Details: ${details}`;
       }
     }
     const CURRENT_FOLDER_PREFIX = `${CURRENT_FOLDER_SYMBOL}/`;
-    spec.targetFoldersPaths.forEach((path2, idx) => {
-      if (path2 === CURRENT_FOLDER_SYMBOL) {
+    spec.targetFoldersPaths.forEach((path3, idx) => {
+      if (path3 === CURRENT_FOLDER_SYMBOL) {
         spec.targetFoldersPaths[idx] = this.ctx.folderPath;
-      } else if (path2.startsWith(CURRENT_FOLDER_PREFIX)) {
-        spec.targetFoldersPaths[idx] = `${this.ctx.folderPath}/${path2.substring(CURRENT_FOLDER_PREFIX.length)}`;
+      } else if (path3.startsWith(CURRENT_FOLDER_PREFIX)) {
+        spec.targetFoldersPaths[idx] = `${this.ctx.folderPath}/${path3.substring(CURRENT_FOLDER_PREFIX.length)}`;
       }
     });
     return true;
@@ -1890,213 +2202,6 @@ Details: ${details}`;
   };
 };
 
-// src/model.ts
-function isRecord(value) {
-  try {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-  } catch {
-    return false;
-  }
-}
-function ownValue(value, key) {
-  if (!isRecord(value)) return void 0;
-  try {
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    return descriptor && "value" in descriptor ? descriptor.value : void 0;
-  } catch {
-    return void 0;
-  }
-}
-function ownString(value, key) {
-  const item = ownValue(value, key);
-  return typeof item === "string" && item.length > 0 ? item : void 0;
-}
-function normalizeSlashes(value) {
-  return value.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/{2,}/g, "/");
-}
-function normalizeCanonicalPath(value) {
-  if (typeof value !== "string") return void 0;
-  let normalized = normalizeSlashes(value).replace(/^\/+|\/+$/g, "");
-  if (normalized.length === 0) return void 0;
-  normalized = normalized.replace(/\.(?:md|markdown|canvas|base)$/i, "");
-  return normalized;
-}
-function normalizeFolderPath(value) {
-  const normalized = normalizeCanonicalPath(value);
-  if (!normalized || normalized === "index") return "/";
-  return normalized.endsWith("/index") ? normalized.slice(0, -"/index".length) || "/" : normalized;
-}
-function sourcePathOf(value, slug) {
-  const raw = ownString(value, "relativePath") ?? ownString(value, "filePath") ?? `${slug}.md`;
-  return normalizeSlashes(raw).replace(/^\/+/, "");
-}
-function fileNameOf(sourcePath) {
-  return sourcePath.split("/").at(-1) ?? sourcePath;
-}
-function basenameOf(fileName) {
-  return fileName.replace(/\.(?:md|markdown|canvas|base)$/i, "");
-}
-function toTimestamp(value) {
-  try {
-    if (value instanceof Date) {
-      const timestamp = Date.prototype.getTime.call(value);
-      return Number.isFinite(timestamp) ? timestamp : void 0;
-    }
-  } catch {
-    return void 0;
-  }
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim().length > 0) {
-    const timestamp = Date.parse(value);
-    return Number.isFinite(timestamp) ? timestamp : void 0;
-  }
-  return void 0;
-}
-function firstTimestamp(...values) {
-  for (const value of values) {
-    const timestamp = toTimestamp(value);
-    if (timestamp !== void 0) return timestamp;
-  }
-  return 0;
-}
-function toFileRecord(value) {
-  const slug = normalizeCanonicalPath(ownValue(value, "slug"));
-  if (!slug) return void 0;
-  const sourcePath = sourcePathOf(value, slug);
-  const fileName = fileNameOf(sourcePath);
-  const frontmatterValue = ownValue(value, "frontmatter");
-  const frontmatter = isRecord(frontmatterValue) ? frontmatterValue : {};
-  const datesValue = ownValue(value, "dates");
-  const dates = isRecord(datesValue) ? datesValue : {};
-  return {
-    slug,
-    sourcePath,
-    fileName,
-    basename: basenameOf(fileName),
-    frontmatter,
-    created: firstTimestamp(
-      ownValue(dates, "created"),
-      ownValue(value, "created"),
-      ownValue(frontmatter, "created"),
-      ownValue(frontmatter, "date")
-    ),
-    modified: firstTimestamp(
-      ownValue(dates, "modified"),
-      ownValue(value, "modified"),
-      ownValue(value, "updated"),
-      ownValue(frontmatter, "modified"),
-      ownValue(frontmatter, "updated"),
-      ownValue(frontmatter, "date")
-    )
-  };
-}
-function sourceDirectoryParts(file) {
-  const parts = file.sourcePath.split("/").filter(Boolean);
-  parts.pop();
-  return parts;
-}
-function canonicalDirectoryParts(file) {
-  const parts = file.slug.split("/").filter(Boolean);
-  if (parts.at(-1) === "index") parts.pop();
-  else parts.pop();
-  return parts;
-}
-function ensureFolder(folders, canonicalParts, sourceParts, depth) {
-  const canonicalPath = canonicalParts.slice(0, depth).join("/") || "/";
-  const existing = folders.get(canonicalPath);
-  if (existing) return existing;
-  const sourceSlice = sourceParts.slice(0, depth);
-  const sourcePath = sourceSlice.join("/") || "/";
-  const fallbackName = canonicalParts[depth - 1] ?? "";
-  const folder = {
-    canonicalPath,
-    sourcePath,
-    name: sourceSlice.at(-1) ?? fallbackName,
-    directFiles: [],
-    descendantFiles: []
-  };
-  folders.set(canonicalPath, folder);
-  return folder;
-}
-function safeArray(value) {
-  try {
-    return Array.isArray(value) ? Array.from(value) : [];
-  } catch {
-    return [];
-  }
-}
-function buildVaultModel(values, options) {
-  const files = /* @__PURE__ */ new Map();
-  const folders = /* @__PURE__ */ new Map();
-  folders.set("/", {
-    canonicalPath: "/",
-    sourcePath: "/",
-    name: "",
-    directFiles: [],
-    descendantFiles: []
-  });
-  for (const value of safeArray(values)) {
-    const file = toFileRecord(value);
-    if (!file || files.has(file.slug)) continue;
-    files.set(file.slug, file);
-    const canonicalParts = canonicalDirectoryParts(file);
-    const sourceParts = sourceDirectoryParts(file);
-    for (let depth = 1; depth <= canonicalParts.length; depth += 1) {
-      ensureFolder(folders, canonicalParts, sourceParts, depth);
-    }
-  }
-  for (const file of files.values()) {
-    const canonicalParts = canonicalDirectoryParts(file);
-    const parentPath2 = canonicalParts.join("/") || "/";
-    const parent = folders.get(parentPath2);
-    if (!parent) continue;
-    const isIndex = file.slug === "index" || file.slug.endsWith("/index");
-    if (isIndex) parent.index ??= file;
-    if (file.basename === parent.name) parent.folderNote ??= file;
-    parent.directFiles.push(file);
-    parent.descendantFiles.push(file);
-    for (let depth = canonicalParts.length - 1; depth >= 0; depth -= 1) {
-      const ancestorPath = canonicalParts.slice(0, depth).join("/") || "/";
-      folders.get(ancestorPath)?.descendantFiles.push(file);
-    }
-  }
-  const specSources = [];
-  for (const file of files.values()) {
-    const rawSpec = ownValue(file.frontmatter, options.specProperty);
-    if (rawSpec === void 0 || rawSpec === null) continue;
-    if (typeof rawSpec !== "string") {
-      throw new Error(
-        `${file.sourcePath}: frontmatter property "${options.specProperty}" must be a string`
-      );
-    }
-    const canonicalParts = canonicalDirectoryParts(file);
-    const folder = folders.get(canonicalParts.join("/") || "/");
-    specSources.push({
-      folderPath: folder?.sourcePath ?? "/",
-      fileName: file.fileName,
-      text: rawSpec
-    });
-  }
-  specSources.sort(
-    (left, right) => left.folderPath.localeCompare(right.folderPath) || left.fileName.localeCompare(right.fileName)
-  );
-  return { files, folders, specSources };
-}
-function metadataForFolder(folder) {
-  if (!folder) return {};
-  return {
-    ...folder.folderNote?.frontmatter ?? {},
-    ...folder.index?.frontmatter ?? {}
-  };
-}
-function sourceFolderPath(model, canonicalPath) {
-  return model.folders.get(normalizeFolderPath(canonicalPath))?.sourcePath ?? normalizeFolderPath(canonicalPath);
-}
-function sourceFolderName(model, canonicalPath) {
-  const normalized = normalizeFolderPath(canonicalPath);
-  return model.folders.get(normalized)?.name ?? (normalized === "/" ? "" : normalized.split("/").at(-1) ?? "");
-}
-
 // src/engine.ts
 var naturalCompare = new Intl.Collator(void 0, {
   usage: "sort",
@@ -2116,7 +2221,10 @@ var vscNaturalCompare = new Intl.Collator("en", {
 var defaultOptions = Object.freeze({
   specProperty: "sorting-spec",
   bookmarksOrderProperty: "bookmarks-order",
-  iconProperty: "icon"
+  iconProperty: "icon",
+  articleNavigation: false,
+  previousArticleProperty: "PreviousArticle",
+  nextArticleProperty: "NextArticle"
 });
 function normalizeOptions(value) {
   const normalizeKey = (key) => {
@@ -2126,7 +2234,10 @@ function normalizeOptions(value) {
   return {
     specProperty: normalizeKey("specProperty"),
     bookmarksOrderProperty: normalizeKey("bookmarksOrderProperty"),
-    iconProperty: normalizeKey("iconProperty")
+    iconProperty: normalizeKey("iconProperty"),
+    articleNavigation: typeof ownValue(value, "articleNavigation") === "boolean" ? ownValue(value, "articleNavigation") === true : defaultOptions.articleNavigation,
+    previousArticleProperty: normalizeKey("previousArticleProperty"),
+    nextArticleProperty: normalizeKey("nextArticleProperty")
   };
 }
 function compileSpecs(model) {
@@ -2461,8 +2572,8 @@ function compareItems(left, right, spec, groups) {
   }
   return comparatorFor(30 /* default */, 0 /* Primary */)(left, right) || left.originalIndex - right.originalIndex;
 }
-function fileForPath(model, path2) {
-  return model.files.get(path2) ?? model.files.get(`${path2}/index`);
+function fileForPath(model, path3) {
+  return model.files.get(path3) ?? model.files.get(`${path3}/index`);
 }
 function toSortable(input, index, model) {
   const normalizedPath = normalizeFolderPath(input.path);
@@ -2519,8 +2630,8 @@ function createSortingService(userOptions = void 0) {
     }
   });
 }
-function parentPath(path2) {
-  const parts = path2.split("/").filter(Boolean);
+function parentPath2(path3) {
+  const parts = path3.split("/").filter(Boolean);
   parts.pop();
   return parts.join("/") || "/";
 }
@@ -2535,7 +2646,7 @@ function buildExplorerOrderManifest(allFiles, userOptions = void 0) {
   };
   for (const folder of compiled.model.folders.values()) {
     if (folder.canonicalPath === "/") continue;
-    add(parentPath(folder.canonicalPath), {
+    add(parentPath2(folder.canonicalPath), {
       key: `folder:${folder.canonicalPath}`,
       path: folder.canonicalPath,
       isFolder: true
@@ -2543,7 +2654,7 @@ function buildExplorerOrderManifest(allFiles, userOptions = void 0) {
   }
   for (const file of compiled.model.files.values()) {
     if (file.slug === "index" || file.slug.endsWith("/index")) continue;
-    add(parentPath(file.slug), {
+    add(parentPath2(file.slug), {
       key: `file:${file.slug}`,
       path: file.slug,
       isFolder: false
@@ -2577,17 +2688,25 @@ var SORTING_SERVICE_SYMBOL = "@vinggit/custom-file-explorer-sorting-support/serv
 var EXPLORER_MANIFEST_PATH = "static/custom-file-explorer-sorting.json";
 
 // src/scripts/explorer.inline.ts
-var explorer_inline_default = 'function f(n){let e=String(n||"").replace(/\\\\/g,"/").replace(/^\\/+|\\/+$/g,"").replace(/\\.html$/i,"");return e==="index"?"/":(e.endsWith("/index")&&(e=e.slice(0,-6)),e||"/")}function E(n){let e=n.body?.dataset.basepath??n.documentElement.dataset.basepath,r=f(e||"");return r==="/"?"":r}function w(n,e){let t=`/${[E(n),"static/custom-file-explorer-sorting.json"].filter(Boolean).join("/")}`;return new URL(t,e).href}function m(n,e,r){try{let t=decodeURIComponent(new URL(n,e).pathname);return t=t.replace(/^\\/+|\\/+$/g,""),r&&(t===r||t.startsWith(`${r}/`))&&(t=t.slice(r.length).replace(/^\\/+/,"")),f(t)}catch{return}}function b(n){return new Set([...n.order,...n.hidden])}function x(n,e,r,t,o=!1){let i=m(n,e,r);if(!i)return;let s=b(t),d=`folder:${i}`,l=`file:${i}`;return s.has(d)?d:s.has(l)?l:o?d:l}function q(n,e){let r=new Map(e.order.map((t,o)=>[t,o]));return n.map((t,o)=>({item:t,index:o})).sort((t,o)=>{let i=t.item.key?r.get(t.item.key):void 0,s=o.item.key?r.get(o.item.key):void 0;return i!==void 0&&s!==void 0?i-s:i!==void 0?-1:s!==void 0?1:t.index-o.index}).map(({item:t})=>t)}function k(n,e){return Array.from(n.children).filter(r=>r.nodeType===1&&(!e||!r.classList.contains(e)))}function M(n,e,r){let t=new Set(r.hidden);for(let{value:i,key:s}of e){let d=!!s&&t.has(s);i.hidden!==d&&(i.hidden=d),d?i.dataset.cfesHidden="true":delete i.dataset.cfesHidden}let o=q(e,r);if(o.some(({value:i},s)=>i!==e[s]?.value))for(let{value:i}of o)n.appendChild(i)}function H(n,e,r,t){let o=n.querySelector(":scope > .folder-container[data-folderpath]");if(o){let s=f(o.dataset.folderpath);return{key:`folder:${s}`,folderPath:s}}let i=n.querySelector(":scope > a.nav-file-title");return{key:i?x(i.href,e,r,t,!1):void 0}}function R(n,e,r,t,o){let i=r.folders[f(e)],d=k(n,"overflow-end").map(l=>({value:l,...H(l,t,o,i??{order:[],hidden:[]})}));i&&M(n,d,i);for(let{value:l,folderPath:a}of d){if(!a)continue;let c=l.querySelector(":scope > .folder-outer > ul.content");c&&R(c,a,r,t,o)}}function I(n){let e=f(n);return e==="/"||!e.includes("/")?"/":e.slice(0,e.lastIndexOf("/"))}function U(n,e,r){let t=n.body?.dataset.slug??n.documentElement.dataset.slug;return t?f(t):m(e,e,r)??"/"}function $(n,e,r,t,o){let i=f(e),s=r.folders[i];if(!s)return;let l=k(n).filter(a=>a.classList.contains("section-li")).map(a=>{let c=a.querySelector(".section h3 a.internal");if(!c)return{value:a};let y=m(c.href,t,o);if(!y||I(y)!==i)return{value:a};let v=!1;try{v=decodeURIComponent(new URL(c.href,t).pathname).endsWith("/")}catch{}return{value:a,key:x(c.href,t,o,s,v)}});M(n,l,s)}function L(n,e,r){let t=E(n);for(let i of n.querySelectorAll("div.explorer")){let s=i.querySelector(".explorer-ul");s&&R(s,"/",e,r,t)}let o=U(n,r,t);for(let i of n.querySelectorAll(".page-listing ul.section-ul"))$(i,o,e,r,t)}var g,p,u;function D(){return w(document,window.location.origin)}async function O(n=!1){return n&&(p=void 0),p??(p=fetch(D(),{cache:"no-store"}).then(e=>{if(!e.ok)throw new Error(`HTTP ${e.status}`);return e.json()}).then(e=>{if(e?.version!==1||typeof e.folders!="object")throw new Error("unsupported manifest format");return g=e,e}).catch(e=>{console.error("[Custom File Explorer Sorting Support] Could not load order manifest",e)})),p}function P(){u=void 0,g&&L(document,g,window.location.href)}function S(){u===void 0&&(u=window.requestAnimationFrame(P))}async function h(n=!1){await O(n),S()}var T=new MutationObserver(n=>{n.some(e=>e.target instanceof Element?e.target.closest("div.explorer, .page-listing")||e.target.matches("div.explorer, .page-listing"):!1)&&S()});T.observe(document.documentElement,{childList:!0,subtree:!0});var F=()=>{h(!0)},A=()=>{h(!0)};document.addEventListener("nav",F);document.addEventListener("render",A);h();window.addCleanup?.(()=>{T.disconnect(),document.removeEventListener("nav",F),document.removeEventListener("render",A),u!==void 0&&window.cancelAnimationFrame(u)});\n';
+var explorer_inline_default = 'var w=new Intl.Collator(void 0,{usage:"sort",sensitivity:"base",numeric:!0}).compare;function f(n){let e=String(n||"").replace(/\\\\/g,"/").replace(/^\\/+|\\/+$/g,"").replace(/\\.html$/i,"");return e==="index"?"/":(e.endsWith("/index")&&(e=e.slice(0,-6)),e||"/")}function T(n){let e=n.body?.dataset.basepath??n.documentElement.dataset.basepath,i=f(e||"");return i==="/"?"":i}function A(n,e){let t=`/${[T(n),"static/custom-file-explorer-sorting.json"].filter(Boolean).join("/")}`;return new URL(t,e).href}function h(n,e,i){try{let t=decodeURIComponent(new URL(n,e).pathname);return t=t.replace(/^\\/+|\\/+$/g,""),i&&(t===i||t.startsWith(`${i}/`))&&(t=t.slice(i.length).replace(/^\\/+/,"")),f(t)}catch{return}}function b(n){let e=f(n);return e==="/"?[]:e.split("/").filter(Boolean)}function L(n,e,i){let t=n.slice(0,e+1).join("/"),r=`folder:${t}`,o=`file:${t}`;return i&&q(i).has(r)||e<n.length-1?r:o}function N(n,e){if(!n)return;let i=n.order.indexOf(e);return i<0?void 0:i}function U(n,e,i){let t=b(n),r=b(e),o=Math.min(t.length,r.length);for(let s=0;s<o;s+=1){let a=s===0?"/":t.slice(0,s).join("/"),c=s===0?"/":r.slice(0,s).join("/");if(a!==c)return w(t[s]??"",r[s]??"");let d=i.folders[a],u=N(d,L(t,s,d)),g=N(d,L(r,s,d));if(u!==void 0&&g!==void 0&&u!==g)return u-g;if(u!==void 0&&g===void 0)return-1;if(u===void 0&&g!==void 0)return 1;let l=w(t[s]??"",r[s]??"");if(l!==0)return l}return t.length-r.length}function D(n,e,i){let t=i.articleNavigation?.pages[f(n)],r=f(e);return!!t?.previous&&f(t.previous.slug)===r||!!t?.next&&f(t.next.slug)===r}function q(n){return new Set([...n.order,...n.hidden])}function O(n,e,i,t,r=!1){let o=h(n,e,i);if(!o)return;let s=q(t),a=`folder:${o}`,c=`file:${o}`;return s.has(a)?a:s.has(c)?c:r?a:c}function j(n,e){let i=new Map(e.order.map((t,r)=>[t,r]));return n.map((t,r)=>({item:t,index:r})).sort((t,r)=>{let o=t.item.key?i.get(t.item.key):void 0,s=r.item.key?i.get(r.item.key):void 0;return o!==void 0&&s!==void 0?o-s:o!==void 0?-1:s!==void 0?1:t.index-r.index}).map(({item:t})=>t)}function y(n,e){return Array.from(n.children).filter(i=>i.nodeType===1&&(!e||!i.classList.contains(e)))}function $(n,e,i){let t=new Set(i.hidden);for(let{value:o,key:s}of e){let a=!!s&&t.has(s);o.hidden!==a&&(o.hidden=a),a?o.dataset.cfesHidden="true":delete o.dataset.cfesHidden}let r=j(e,i);if(r.some(({value:o},s)=>o!==e[s]?.value))for(let{value:o}of r)n.appendChild(o)}function K(n,e,i,t){let r=n.querySelector(":scope > .folder-container[data-folderpath]");if(r){let s=f(r.dataset.folderpath);return{key:`folder:${s}`,folderPath:s}}let o=n.querySelector(":scope > a.nav-file-title");return{key:o?O(o.href,e,i,t,!1):void 0}}function H(n,e,i,t,r){let o=i.folders[f(e)],a=y(n,"overflow-end").map(c=>({value:c,...K(c,t,r,o??{order:[],hidden:[]})}));o&&$(n,a,o);for(let{value:c,folderPath:d}of a){if(!d)continue;let u=c.querySelector(":scope > .folder-outer > ul.content");u&&H(u,d,i,t,r)}}function z(n){let e=f(n);return e==="/"||!e.includes("/")?"/":e.slice(0,e.lastIndexOf("/"))}function W(n,e,i){let t=n.body?.dataset.slug??n.documentElement.dataset.slug;return t?f(t):h(e,e,i)??"/"}function G(n,e,i,t,r){let o=f(e),s=i.folders[o];if(!s)return;let c=y(n).filter(d=>d.classList.contains("section-li")).map(d=>{let u=d.querySelector(".section h3 a.internal");if(!u)return{value:d};let g=h(u.href,t,r);if(!g||z(g)!==o)return{value:d};let l=!1;try{l=decodeURIComponent(new URL(u.href,t).pathname).endsWith("/")}catch{}return{value:d,key:O(u.href,t,r,s,l)}});$(n,c,s)}function J(n,e,i,t,r){let o=n.querySelector(":scope > .overflow-end"),a=y(n,"overflow-end").map((l,p)=>{let M=l.querySelector("a.internal"),v=M?h(M.href,t,r):void 0,R=!!v&&!!e.articleNavigation&&D(v,i,e);return l.hidden=R,R?l.dataset.cfesNavigationBacklink="true":delete l.dataset.cfesNavigationBacklink,{value:l,index:p,path:v}}),c=[...a].sort((l,p)=>!l.path&&!p.path?l.index-p.index:l.path?p.path?U(l.path,p.path,e)||l.index-p.index:-1:1);if(c.some(({value:l},p)=>l!==a[p]?.value))for(let{value:l}of c)n.insertBefore(l,o??null);let d=n.closest(".backlinks");if(!d)return;let u=a.filter(({path:l})=>l!==void 0);u.length>0&&u.every(({value:l})=>l.hidden===!0)?(d.hidden=!0,d.dataset.cfesNavigationBacklinksHidden="true"):d.dataset.cfesNavigationBacklinksHidden==="true"&&(d.hidden=!1,delete d.dataset.cfesNavigationBacklinksHidden)}function Q(n,e,i){let t=[e,f(n)].filter(r=>r&&r!=="/").flatMap(r=>r.split("/")).map(encodeURIComponent).join("/");return new URL(`/${t}`,i).pathname}function S(n,e,i,t){let r=document.createElement("div");r.className=`cfes-article-navigation-slot cfes-article-navigation-${n}`;let o=document.createElement("a");o.className="internal cfes-article-navigation-link",o.href=Q(e.slug,i,t),o.setAttribute("aria-label",`${n==="previous"?"Previous":"Next"}: ${e.title}`);let s=document.createElement("div");s.className="cfes-article-navigation-label",s.textContent=n==="previous"?"\\u2039 Previous":"Next \\u203A";let a=document.createElement("div");return a.className="cfes-article-navigation-title",a.textContent=e.title,o.append(s,a),r.appendChild(o),r}function V(n,e,i,t,r){n.querySelector(".cfes-article-navigation")?.remove();let o=e.articleNavigation?.pages[f(i)];if(!o||!o.previous&&!o.next)return;let s=n.querySelector("#quartz-body > .center"),a=s?.querySelector(":scope > .page-footer");if(!s||!a)return;let c=n.createElement("nav");c.className="cfes-article-navigation",c.setAttribute("aria-label","Article navigation"),o.previous&&c.appendChild(S("previous",o.previous,r,t)),o.next&&c.appendChild(S("next",o.next,r,t)),s.insertBefore(c,a)}function P(n,e,i){let t=T(n);for(let o of n.querySelectorAll("div.explorer")){let s=o.querySelector(".explorer-ul");s&&H(s,"/",e,i,t)}let r=W(n,i,t);for(let o of n.querySelectorAll(".page-listing ul.section-ul"))G(o,r,e,i,t);for(let o of n.querySelectorAll(".backlinks ul.overflow"))J(o,e,r,i,t);V(n,e,r,i,t)}var x,k,m;function X(){return A(document,window.location.origin)}async function Y(n=!1){return n&&(k=void 0),k??(k=fetch(X(),{cache:"no-store"}).then(e=>{if(!e.ok)throw new Error(`HTTP ${e.status}`);return e.json()}).then(e=>{if(e?.version!==1||typeof e.folders!="object")throw new Error("unsupported manifest format");return x=e,e}).catch(e=>{console.error("[Custom File Explorer Sorting Support] Could not load order manifest",e)})),k}function Z(){m=void 0,x&&P(document,x,window.location.href)}function C(){m===void 0&&(m=window.requestAnimationFrame(Z))}async function E(n=!1){await Y(n),C()}var F=new MutationObserver(n=>{n.some(e=>e.target instanceof Element?e.target.closest("div.explorer, .page-listing, .backlinks")||e.target.matches("div.explorer, .page-listing, .backlinks"):!1)&&C()});F.observe(document.documentElement,{childList:!0,subtree:!0});var I=()=>{E(!0)},B=()=>{E(!0)};document.addEventListener("nav",I);document.addEventListener("render",B);E();window.addCleanup?.(()=>{F.disconnect(),document.removeEventListener("nav",I),document.removeEventListener("render",B),m!==void 0&&window.cancelAnimationFrame(m)});\n';
+
+// src/styles/article-navigation.scss
+var article_navigation_default = ".cfes-article-navigation {\n  display: grid;\n  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);\n  gap: 1rem;\n  margin: 1rem 0 0.5rem;\n}\n\n.cfes-article-navigation-slot {\n  min-width: 0;\n}\n\n.cfes-article-navigation-previous {\n  grid-column: 1;\n}\n\n.cfes-article-navigation-next {\n  grid-column: 2;\n  text-align: end;\n}\n\na.cfes-article-navigation-link {\n  display: block;\n  box-sizing: border-box;\n  width: 100%;\n  padding: 0.75rem 1rem;\n  color: var(--darkgray);\n  background: var(--light);\n  border: 1px solid var(--lightgray);\n  border-radius: 0.5rem;\n  text-decoration: none;\n  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;\n}\n\na.cfes-article-navigation-link:hover,\na.cfes-article-navigation-link:focus-visible {\n  color: var(--secondary);\n  border-color: var(--secondary);\n  transform: translateY(-1px);\n}\n\n.cfes-article-navigation-label {\n  margin-bottom: 0.25rem;\n  color: var(--gray);\n  font-size: 0.78em;\n  letter-spacing: 0.02em;\n}\n\n.cfes-article-navigation-link:hover .cfes-article-navigation-label,\n.cfes-article-navigation-link:focus-visible .cfes-article-navigation-label {\n  color: var(--secondary);\n}\n\n.cfes-article-navigation-title {\n  overflow: hidden;\n  color: inherit;\n  font-weight: 600;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n@media (max-width: 600px) {\n  .cfes-article-navigation {\n    grid-template-columns: minmax(0, 1fr);\n  }\n  .cfes-article-navigation-previous,\n  .cfes-article-navigation-next {\n    grid-column: 1;\n    text-align: start;\n  }\n}";
 
 // src/plugin.ts
 function contentData(content) {
   return content.map(([, file]) => file.data);
 }
 async function emitManifest(ctx, content, options) {
-  const manifest = buildExplorerOrderManifest(contentData(content), options);
+  const allFiles = contentData(content);
+  const manifest = buildExplorerOrderManifest(allFiles, options);
+  if (options.articleNavigation) {
+    const properties = await resolveArticleNavigationProperties(ctx, options);
+    manifest.articleNavigation = buildArticleNavigationManifest(allFiles, options, properties);
+  }
   const outputPath = path.join(ctx.argv.output, ...EXPLORER_MANIFEST_PATH.split("/"));
-  await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  await fs.writeFile(outputPath, `${JSON.stringify(manifest)}
+  await fs2.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs2.writeFile(outputPath, `${JSON.stringify(manifest)}
 `, "utf8");
   return [outputPath.replace(/\\/g, "/")];
 }
@@ -2599,7 +2718,7 @@ function CustomFileExplorerSortingSupport(userOptions = void 0) {
     name: "CustomFileExplorerSortingSupport",
     externalResources() {
       return {
-        css: [],
+        css: options.articleNavigation ? [{ content: article_navigation_default, inline: true, spaPreserve: true }] : [],
         js: [
           {
             contentType: "inline",

@@ -80,10 +80,20 @@ export const defaultOptions: CustomFileExplorerSortingOptions = Object.freeze({
   specProperty: "sorting-spec",
   bookmarksOrderProperty: "bookmarks-order",
   iconProperty: "icon",
+  articleNavigation: false,
+  previousArticleProperty: "PreviousArticle",
+  nextArticleProperty: "NextArticle",
 });
 
 export function normalizeOptions(value: unknown): CustomFileExplorerSortingOptions {
-  const normalizeKey = (key: keyof CustomFileExplorerSortingOptions): string => {
+  const normalizeKey = (
+    key:
+      | "specProperty"
+      | "bookmarksOrderProperty"
+      | "iconProperty"
+      | "previousArticleProperty"
+      | "nextArticleProperty",
+  ): string => {
     const candidate = ownValue(value, key);
     return typeof candidate === "string" && candidate.trim().length > 0
       ? candidate.trim()
@@ -93,6 +103,12 @@ export function normalizeOptions(value: unknown): CustomFileExplorerSortingOptio
     specProperty: normalizeKey("specProperty"),
     bookmarksOrderProperty: normalizeKey("bookmarksOrderProperty"),
     iconProperty: normalizeKey("iconProperty"),
+    articleNavigation:
+      typeof ownValue(value, "articleNavigation") === "boolean"
+        ? ownValue(value, "articleNavigation") === true
+        : defaultOptions.articleNavigation,
+    previousArticleProperty: normalizeKey("previousArticleProperty"),
+    nextArticleProperty: normalizeKey("nextArticleProperty"),
   };
 }
 

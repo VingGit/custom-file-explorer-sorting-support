@@ -1,5 +1,5 @@
 import { CustomFileExplorerSortingOptions, QuartzEmitterPluginInstance, ExplorerOrderManifest, QuartzNavigationSortingService } from './types.js';
-export { BuildCtx, ChangeEvent, EXPLORER_MANIFEST_PATH, FilePath, ProcessedContent, QuartzEmitterPlugin, QuartzPluginData, QuartzSortInput, QuartzSortResult, QuartzTransformerPlugin, QuartzTransformerPluginInstance, SORTING_SERVICE_SYMBOL, StaticResources } from './types.js';
+export { ArticleNavigationLink, ArticleNavigationManifest, ArticleNavigationPage, BuildCtx, ChangeEvent, EXPLORER_MANIFEST_PATH, FilePath, ProcessedContent, QuartzEmitterPlugin, QuartzPluginData, QuartzSortInput, QuartzSortResult, QuartzTransformerPlugin, QuartzTransformerPluginInstance, SORTING_SERVICE_SYMBOL, StaticResources } from './types.js';
 import 'hast';
 import 'unified';
 import 'vfile';

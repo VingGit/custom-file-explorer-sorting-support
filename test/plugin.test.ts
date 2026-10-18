@@ -9,6 +9,9 @@ import { VFile } from "vfile";
 vi.mock("../src/scripts/explorer.inline.ts", () => ({
   default: "fetch('static/custom-file-explorer-sorting.json')",
 }));
+vi.mock("../src/styles/article-navigation.scss", () => ({
+  default: ".cfes-article-navigation {}",
+}));
 
 import { CustomFileExplorerSortingSupport } from "../src/plugin";
 import type { BuildCtx, ProcessedContent, StaticResources } from "../src/quartz";
@@ -71,5 +74,52 @@ describe("Quartz plugin", () => {
       loadTime: "afterDOMReady",
     });
     expect(resources?.js?.[0]?.script).toContain("custom-file-explorer-sorting.json");
+  });
+
+  it("emits detected article navigation and its theme-aware stylesheet when enabled", async () => {
+    const output = await fs.mkdtemp(path.join(os.tmpdir(), "quartz-sort-"));
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), "quartz-sort-content-"));
+    temporaryDirectories.push(output, directory);
+    const settingsDirectory = path.join(directory, ".obsidian", "plugins", "article-navigator");
+    await fs.mkdir(settingsDirectory, { recursive: true });
+    await fs.writeFile(
+      path.join(settingsDirectory, "data.json"),
+      JSON.stringify({ previousKey: "DetectedPrevious", nextKey: "DetectedNext" }),
+      "utf8",
+    );
+
+    const plugin = CustomFileExplorerSortingSupport({
+      articleNavigation: true,
+      previousArticleProperty: "FallbackPrevious",
+      nextArticleProperty: "FallbackNext",
+    });
+    const ctx = { argv: { output, directory } } as BuildCtx;
+    const resources = { css: [], js: [], additionalHead: [] } as StaticResources;
+    await plugin.emit(
+      ctx,
+      [
+        content("Diary/Previous", "Diary/Previous.md"),
+        content("Diary/Current", "Diary/Current.md", {
+          DetectedPrevious: "[[Previous]]",
+        }),
+      ],
+      resources,
+    );
+
+    const manifest = JSON.parse(
+      await fs.readFile(path.join(output, EXPLORER_MANIFEST_PATH), "utf8"),
+    );
+    expect(manifest.articleNavigation).toMatchObject({
+      previousProperty: "DetectedPrevious",
+      nextProperty: "DetectedNext",
+      pages: {
+        "Diary/Current": {
+          previous: { slug: "Diary/Previous", title: "Previous" },
+        },
+      },
+    });
+    expect(plugin.externalResources?.({} as BuildCtx)?.css?.[0]?.content).toContain(
+      ".cfes-article-navigation",
+    );
   });
 });

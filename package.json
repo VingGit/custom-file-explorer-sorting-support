@@ -1,7 +1,7 @@
 {
   "name": "@vinggit/custom-file-explorer-sorting-support",
   "version": "0.11.0",
-  "description": "Use Obsidian Custom File Explorer Sorting specifications in Quartz navigation.",
+  "description": "Use Obsidian Custom File Explorer Sorting specifications across Quartz navigation and backlinks.",
   "type": "module",
   "license": "GPL-3.0-only",
   "author": "VingGit",
@@ -16,7 +16,8 @@
     "obsidian",
     "custom-sort",
     "file-explorer",
-    "navigation"
+    "navigation",
+    "backlinks"
   ],
   "files": [
     "dist",
@@ -82,7 +83,7 @@
   "quartz": {
     "name": "custom-file-explorer-sorting-support",
     "displayName": "Custom File Explorer Sorting Support",
-    "description": "Applies Obsidian Custom File Explorer Sorting specifications to Quartz navigation.",
+    "description": "Applies Obsidian Custom File Explorer Sorting specifications to Quartz navigation and backlinks.",
     "author": "VingGit",
     "homepage": "https://github.com/VingGit/custom-file-explorer-sorting-support",
     "keywords": [
@@ -90,7 +91,8 @@
       "obsidian",
       "custom-sort",
       "file-explorer",
-      "navigation"
+      "navigation",
+      "backlinks"
     ],
     "category": "emitter",
     "version": "0.11.0",
@@ -101,7 +103,10 @@
     "defaultOptions": {
       "specProperty": "sorting-spec",
       "bookmarksOrderProperty": "bookmarks-order",
-      "iconProperty": "icon"
+      "iconProperty": "icon",
+      "articleNavigation": false,
+      "previousArticleProperty": "PreviousArticle",
+      "nextArticleProperty": "NextArticle"
     },
     "configSchema": {
       "specProperty": {
@@ -111,6 +116,15 @@
         "type": "string"
       },
       "iconProperty": {
+        "type": "string"
+      },
+      "articleNavigation": {
+        "type": "boolean"
+      },
+      "previousArticleProperty": {
+        "type": "string"
+      },
+      "nextArticleProperty": {
         "type": "string"
       }
     }

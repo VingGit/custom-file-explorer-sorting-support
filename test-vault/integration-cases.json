@@ -56,5 +56,23 @@
     "49-target-folder-rules/container/named-target",
     "49-target-folder-rules/wildcards/one",
     "49-target-folder-rules/container/regex-target"
+  ],
+  "articleNavigationFolder": "article-navigator-test",
+  "articleNavigationOrder": [
+    "article-navigator-test/define-forensic-poc-scope",
+    "article-navigator-test/choosing-the-right-framework",
+    "article-navigator-test/opensearch-vs-competitors",
+    "article-navigator-test/disk-image-extraction",
+    "article-navigator-test/hermeneutics-of-hard-drive",
+    "article-navigator-test/opensearch-digital-humanities-plugins",
+    "article-navigator-test/excluding-native-windows-files",
+    "article-navigator-test/windows-install-hash-differences",
+    "article-navigator-test/thesis-site-heading-ideas",
+    "article-navigator-test/digital-humanities-in-forensics",
+    "article-navigator-test/obsidian-markdown-conversion",
+    "article-navigator-test/core-concepts-for-forensics",
+    "article-navigator-test/zulu-thesis-topic-overview",
+    "article-navigator-test/purpose-statement",
+    "article-navigator-test/alpha-system-prompt-crafting"
   ]
 }

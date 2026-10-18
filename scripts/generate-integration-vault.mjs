@@ -327,6 +327,164 @@ target-folder: regexp: for-name: ^regex-target$
   }
 }
 
+async function writeArticleNavigationFixture() {
+  const folder = "Article-navigator-test";
+  const articles = [
+    {
+      file: "Alpha system prompt crafting.md",
+      created: "2026-01-17T10:50:32",
+      updated: "2026-10-17T10:28:36",
+      next: "Purpose statement",
+      body: "The alphabetically first filename is intentionally the earliest article.",
+    },
+    {
+      file: "Purpose statement.md",
+      created: "2026-01-17T10:58:32",
+      updated: "2026-09-27T09:08:05",
+      previous: "Alpha system prompt crafting",
+      next: "Zulu thesis topic overview",
+    },
+    {
+      file: "Zulu thesis topic overview.md",
+      created: "2026-01-24T10:14:40",
+      updated: "2026-10-18T14:21:27",
+      previous: "Purpose statement",
+      next: "Core concepts for forensics",
+      body: "The alphabetically last filename intentionally follows Purpose statement.",
+    },
+    {
+      file: "Core concepts for forensics.md",
+      created: "2026-02-04T10:33:08",
+      updated: "2026-10-01T06:40:57",
+      previous: "Zulu thesis topic overview",
+      next: "Obsidian Markdown Conversion",
+    },
+    {
+      file: "Obsidian Markdown Conversion.md",
+      created: "2026-05-08T07:43:43",
+      updated: "2026-09-27T09:08:05",
+      previous: "Core concepts for forensics",
+      next: "Digital Humanities in Forensics",
+    },
+    {
+      file: "Digital Humanities in Forensics.md",
+      created: "2026-05-08T10:43:43",
+      updated: "2026-10-01T06:42:24",
+      previous: "Obsidian Markdown Conversion",
+      next: "Thesis site heading ideas",
+    },
+    {
+      file: "Thesis site heading ideas.md",
+      created: "2026-05-09T10:43:43",
+      updated: "2026-09-27T09:08:05",
+      previous: "Digital Humanities in Forensics",
+      next: "Windows Install Hash Differences",
+    },
+    {
+      file: "Windows Install Hash Differences.md",
+      created: "2026-05-12T10:43:43",
+      updated: "2026-09-27T09:08:05",
+      previous: "Thesis site heading ideas",
+      next: "Excluding native Windows files",
+    },
+    {
+      file: "Excluding native Windows files.md",
+      created: "2026-05-22T10:43:43",
+      updated: "2026-09-27T09:08:05",
+      previous: "Windows Install Hash Differences",
+      next: "OpenSearch Digital Humanities plugins",
+    },
+    {
+      file: "OpenSearch Digital Humanities plugins.md",
+      created: "2026-06-06T10:43:43",
+      updated: "2026-09-27T09:08:05",
+      previous: "Excluding native Windows files",
+      next: "Hermeneutics of Hard Drive",
+    },
+    {
+      file: "Hermeneutics of Hard Drive.md",
+      created: "2026-06-08T09:43:43",
+      updated: "2026-09-27T09:08:05",
+      previous: "OpenSearch Digital Humanities plugins",
+      next: "Disk Image Extraction",
+    },
+    {
+      file: "Disk Image Extraction.md",
+      created: "2026-06-19T10:43:43",
+      updated: "2026-10-18T14:23:49",
+      previous: "Hermeneutics of Hard Drive",
+      next: "OpenSearch vs competitors",
+    },
+    {
+      file: "OpenSearch vs competitors.md",
+      created: "2026-07-07T10:43:43",
+      updated: "2026-09-27T09:08:05",
+      previous: "Disk Image Extraction",
+      next: "Choosing the right framework",
+    },
+    {
+      file: "Choosing the right framework.md",
+      created: "2026-07-10T11:28:58",
+      updated: "2026-09-27T09:08:05",
+      previous: "OpenSearch vs competitors",
+      next: "Define Forensic POC scope",
+    },
+    {
+      file: "Define Forensic POC scope.md",
+      created: "2026-08-02T11:28:58",
+      updated: "2026-10-01T06:38:58",
+      previous: "Choosing the right framework",
+    },
+  ];
+
+  await write(
+    `${folder}/index.md`,
+    frontmatter([
+      'title: "Article Navigator test"',
+      "created: 2026-09-15T10:04:16",
+      "updated: 2026-10-01T06:14:31",
+      "sorting-spec: |",
+      "  > a-z by-metadata: created",
+    ]) +
+      "# Article Navigator test\n\nThe article names deliberately disagree with their created-date order.\n",
+  );
+
+  for (const article of articles) {
+    const lines = [`created: ${article.created}`, `updated: ${article.updated}`, "SeeAlso: []"];
+    if (article.previous) lines.push(`PreviousArticle: "[[${article.previous}]]"`);
+    if (article.next) lines.push(`NextArticle: "[[${article.next}]]"`);
+    const title = article.file.slice(0, -3);
+    await write(
+      `${folder}/${article.file}`,
+      `${frontmatter(lines)}# ${title}\n\n${article.body ?? "Deterministic article-navigation test content."}\n`,
+    );
+  }
+
+  await write(
+    ".obsidian/plugins/article-navigator/data.json",
+    `${JSON.stringify(
+      {
+        previousKey: "PreviousArticle",
+        nextKey: "NextArticle",
+        seeAlsoKey: "SeeAlso",
+      },
+      null,
+      2,
+    )}\n`,
+  );
+
+  const canonicalFolder = folder.toLowerCase();
+  const canonicalOrder = [...articles].reverse().map((article) => {
+    const slug = article.file
+      .slice(0, -3)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return `${canonicalFolder}/${slug}`;
+  });
+  return { folder: canonicalFolder, order: canonicalOrder };
+}
+
 await rm(vaultRoot, { recursive: true, force: true });
 await mkdir(vaultRoot, { recursive: true });
 
@@ -344,6 +502,7 @@ for (const [slug, title, spec] of cases) {
 }
 
 await writeTargetFixture();
+const articleNavigation = await writeArticleNavigationFixture();
 await write(
   "integration-cases.json",
   `${JSON.stringify(
@@ -356,6 +515,8 @@ await write(
         "49-target-folder-rules/wildcards/one",
         "49-target-folder-rules/container/regex-target",
       ],
+      articleNavigationFolder: articleNavigation.folder,
+      articleNavigationOrder: articleNavigation.order,
     },
     null,
     2,

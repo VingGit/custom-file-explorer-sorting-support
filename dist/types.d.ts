@@ -78,6 +78,12 @@ interface CustomFileExplorerSortingOptions {
     bookmarksOrderProperty: string;
     /** Frontmatter property used by `with-icon:` groups. */
     iconProperty: string;
+    /** Replace navigation-only backlinks with Previous and Next article cards. */
+    articleNavigation: boolean;
+    /** Fallback property used when Article Navigator settings cannot be detected. */
+    previousArticleProperty: string;
+    /** Fallback property used when Article Navigator settings cannot be detected. */
+    nextArticleProperty: string;
 }
 interface QuartzSortInput<T = unknown> {
     /** Opaque caller value returned after sorting. */
@@ -100,8 +106,22 @@ interface ExplorerOrderManifest {
         order: string[];
         hidden: string[];
     }>;
+    articleNavigation?: ArticleNavigationManifest;
+}
+interface ArticleNavigationLink {
+    slug: string;
+    title: string;
+}
+interface ArticleNavigationPage {
+    previous?: ArticleNavigationLink;
+    next?: ArticleNavigationLink;
+}
+interface ArticleNavigationManifest {
+    previousProperty: string;
+    nextProperty: string;
+    pages: Record<string, ArticleNavigationPage>;
 }
 declare const SORTING_SERVICE_SYMBOL = "@vinggit/custom-file-explorer-sorting-support/service/v1";
 declare const EXPLORER_MANIFEST_PATH = "static/custom-file-explorer-sorting.json";
 
-export { type BuildCtx, type ChangeEvent, type CustomFileExplorerSortingOptions, EXPLORER_MANIFEST_PATH, type ExplorerOrderManifest, type FilePath, type ProcessedContent, type QuartzEmitterPlugin, type QuartzEmitterPluginInstance, type QuartzNavigationSortingService, type QuartzPluginData, type QuartzSortInput, type QuartzSortResult, type QuartzTransformerPlugin, type QuartzTransformerPluginInstance, SORTING_SERVICE_SYMBOL, type StaticResources };
+export { type ArticleNavigationLink, type ArticleNavigationManifest, type ArticleNavigationPage, type BuildCtx, type ChangeEvent, type CustomFileExplorerSortingOptions, EXPLORER_MANIFEST_PATH, type ExplorerOrderManifest, type FilePath, type ProcessedContent, type QuartzEmitterPlugin, type QuartzEmitterPluginInstance, type QuartzNavigationSortingService, type QuartzPluginData, type QuartzSortInput, type QuartzSortResult, type QuartzTransformerPlugin, type QuartzTransformerPluginInstance, SORTING_SERVICE_SYMBOL, type StaticResources };
