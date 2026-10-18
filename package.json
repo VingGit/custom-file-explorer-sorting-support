@@ -1,6 +1,6 @@
 {
   "name": "@vinggit/custom-file-explorer-sorting-support",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Use Obsidian Custom File Explorer Sorting specifications across Quartz navigation and backlinks.",
   "type": "module",
   "license": "GPL-3.0-only",
@@ -95,7 +95,7 @@
       "backlinks"
     ],
     "category": "emitter",
-    "version": "0.11.0",
+    "version": "0.12.0",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultOrder": 35,

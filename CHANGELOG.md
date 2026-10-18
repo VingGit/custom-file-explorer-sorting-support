@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0
+
+### Added
+
+- Sort stock Quartz Backlinks with the same hierarchical rules as Explorer.
+- Optionally detect Article Navigator properties, hide only their entries from
+  the Backlinks list, and render responsive Previous/Next cards using Quartz
+  theme variables while preserving the links in local and global graphs.
+
 ## 0.11.0
 
 ### Changed
@@ -67,8 +76,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full parsing and Quartz navigation support for Custom File Explorer Sorting specifications.
 - Stock Explorer ordering through a generated, versioned manifest.
 - An optional server-side sorting service for compatible navigation plugins.
-- Stock Quartz Backlinks ordering that follows the same hierarchical sorting rules as Explorer.
-- Optional Article Navigator property detection, navigation-backlink filtering, and responsive Previous/Next cards using Quartz theme variables.
 - Conformance, build, and scheduled upstream-compatibility checks.
 - A comprehensive bundled test vault and dual Quartz integration-site workflow.
 
