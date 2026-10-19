@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   compareManifestPaths,
+  articleNavigationKey,
   articleNavigationLabels,
   isArticleNavigationBacklink,
   manifestKeyFromHref,
@@ -135,5 +136,23 @@ describe("browser navigation adapter", () => {
       navigation: "Artikkelien selaus",
     });
     expect(articleNavigationLabels("en-US").previous).toBe("Previous");
+  });
+
+  it("uses a stable article-navigation key until the page or links change", () => {
+    const page = {
+      previous: { slug: "Diary/Previous", title: "Previous" },
+      next: { slug: "Diary/Next", title: "Next" },
+    };
+
+    expect(articleNavigationKey("Diary/Current", page, "en-US")).toBe(
+      articleNavigationKey("/Diary/Current/", { ...page }, "en-US"),
+    );
+    expect(articleNavigationKey("Diary/Current", page, "en-US")).not.toBe(
+      articleNavigationKey(
+        "Diary/Current",
+        { ...page, next: { slug: "Diary/Later", title: "Later" } },
+        "en-US",
+      ),
+    );
   });
 });

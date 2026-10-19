@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+- Prevent article-navigation cards from triggering an endless Quartz render
+  cycle, which pinned Explorer scrolling and left hover previews active.
+
 ## 0.13.0
 
 ### Fixed

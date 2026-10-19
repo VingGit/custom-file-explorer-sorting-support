@@ -379,6 +379,10 @@ interface ArticleNavigationLabels {
   navigation: string;
 }
 
+type ArticleNavigationPage = NonNullable<
+  ExplorerOrderManifest["articleNavigation"]
+>["pages"][string];
+
 export function articleNavigationLabels(locale: string | undefined): ArticleNavigationLabels {
   if (locale?.toLocaleLowerCase().startsWith("fi")) {
     return {
@@ -390,6 +394,24 @@ export function articleNavigationLabels(locale: string | undefined): ArticleNavi
   return { previous: "Previous", next: "Next", navigation: "Article navigation" };
 }
 
+export function articleNavigationKey(
+  currentPath: string,
+  page: ArticleNavigationPage,
+  locale: string | undefined,
+): string {
+  const labels = articleNavigationLabels(locale);
+  return JSON.stringify([
+    normalizePath(currentPath),
+    labels.previous,
+    labels.next,
+    labels.navigation,
+    page.previous?.slug ?? "",
+    page.previous?.title ?? "",
+    page.next?.slug ?? "",
+    page.next?.title ?? "",
+  ]);
+}
+
 function applyArticleNavigation(
   document: Document,
   manifest: ExplorerOrderManifest,
@@ -397,18 +419,27 @@ function applyArticleNavigation(
   locationHref: string,
   basePath: string,
 ): void {
-  document.querySelector(".cfes-article-navigation")?.remove();
+  const existing = document.querySelector<HTMLElement>(".cfes-article-navigation");
   const page = manifest.articleNavigation?.pages[normalizePath(currentPath)];
-  if (!page || (!page.previous && !page.next)) return;
+  if (!page || (!page.previous && !page.next)) {
+    existing?.remove();
+    return;
+  }
 
   const center = document.querySelector("#quartz-body > .center");
   const footer = center?.querySelector(":scope > .page-footer");
-  if (!center || !footer) return;
+  if (!center || !footer) {
+    existing?.remove();
+    return;
+  }
 
   const labels = articleNavigationLabels(document.documentElement.lang);
+  const navigationKey = articleNavigationKey(currentPath, page, document.documentElement.lang);
+  if (existing?.dataset.cfesNavigationKey === navigationKey) return;
 
   const navigation = document.createElement("nav");
   navigation.className = "cfes-article-navigation";
+  navigation.dataset.cfesNavigationKey = navigationKey;
   navigation.setAttribute("aria-label", labels.navigation);
   if (page.previous) {
     navigation.appendChild(
@@ -420,9 +451,18 @@ function applyArticleNavigation(
       navigationSlot(document, "next", page.next, basePath, locationHref, labels),
     );
   }
-  center.insertBefore(navigation, footer);
+  if (existing?.parentElement === center) existing.replaceWith(navigation);
+  else {
+    existing?.remove();
+    center.insertBefore(navigation, footer);
+  }
   document.dispatchEvent(
-    new CustomEvent("render", { detail: { source: "cfes-article-navigation" } }),
+    new CustomEvent("render", {
+      detail: {
+        source: "cfes-article-navigation",
+        url: document.body?.dataset.slug ?? normalizePath(currentPath),
+      },
+    }),
   );
 }
 

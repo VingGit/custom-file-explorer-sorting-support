@@ -276,6 +276,8 @@ async function verifySites() {
   let foundBacklinksAdapter = false;
   let foundArticleNavigationAdapter = false;
   let foundArticleNavigationPopovers = false;
+  let foundIdempotentArticleNavigation = false;
+  let foundQuartzCompatibleRenderDetail = false;
   let foundFinnishArticleNavigation = false;
   for (const resource of resourceNames) {
     const contents = await readFile(path.join(withoutPanels, "static", resource), "utf8");
@@ -285,6 +287,10 @@ async function verifySites() {
     if (contents.includes("cfes-article-navigation")) foundArticleNavigationAdapter = true;
     if (contents.includes("internal-link") && contents.includes("dataset.slug")) {
       foundArticleNavigationPopovers = true;
+    }
+    if (contents.includes("cfesNavigationKey")) foundIdempotentArticleNavigation = true;
+    if (contents.includes("cfes-article-navigation") && contents.includes("url:")) {
+      foundQuartzCompatibleRenderDetail = true;
     }
     if (contents.includes("Edellinen") && contents.includes("Seuraava")) {
       foundFinnishArticleNavigation = true;
@@ -304,6 +310,12 @@ async function verifySites() {
   }
   if (!foundArticleNavigationPopovers) {
     throw new Error("Article navigation did not emit Quartz-compatible popover links");
+  }
+  if (!foundIdempotentArticleNavigation) {
+    throw new Error("Article navigation is not guarded against repeated Quartz render cycles");
+  }
+  if (!foundQuartzCompatibleRenderDetail) {
+    throw new Error("Article navigation did not emit Quartz-compatible render event details");
   }
   if (!foundFinnishArticleNavigation) {
     throw new Error("Finnish article-navigation labels were not emitted");
