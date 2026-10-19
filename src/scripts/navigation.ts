@@ -1,3 +1,5 @@
+import { bindArticleNavigationPopovers } from "./article-navigation-popover";
+
 interface ManifestRule {
   order: string[];
   hidden: string[];
@@ -456,14 +458,7 @@ function applyArticleNavigation(
     existing?.remove();
     center.insertBefore(navigation, footer);
   }
-  document.dispatchEvent(
-    new CustomEvent("render", {
-      detail: {
-        source: "cfes-article-navigation",
-        url: document.body?.dataset.slug ?? normalizePath(currentPath),
-      },
-    }),
-  );
+  bindArticleNavigationPopovers(navigation);
 }
 
 export function applyNavigationSorting(

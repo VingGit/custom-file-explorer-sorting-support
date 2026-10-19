@@ -9,3 +9,10 @@ Copyright belongs to that project's contributors.
 The upstream repository currently declares `MIT` in `package.json` while its `LICENSE.md` contains the GNU General Public License version 3. This package uses the conservative GPL-3.0-only terms and includes that license text in `LICENSE` until the upstream metadata is clarified.
 
 The Quartz adapter, browser integration, tests, and documentation in this repository are modifications and additions maintained separately from the upstream Obsidian plugin.
+
+## Floating UI
+
+The article-navigation hover-preview adapter bundles `@floating-ui/dom` and
+its `@floating-ui/core` and `@floating-ui/utils` dependencies. These packages
+are Copyright (c) 2021 Floating UI contributors and are distributed under the
+MIT License.

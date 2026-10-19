@@ -2,10 +2,14 @@
 
 ## Unreleased
 
+## 0.13.1
+
 ### Fixed
 
 - Prevent article-navigation cards from triggering an endless Quartz render
   cycle, which pinned Explorer scrolling and left hover previews active.
+- Bind hover previews directly to article-navigation links so inserting the
+  cards no longer causes a second Explorer rebuild and visible navigation jerk.
 
 ## 0.13.0
 

@@ -63,10 +63,7 @@ const observer = new MutationObserver((records) => {
 observer.observe(document.documentElement, { childList: true, subtree: true });
 
 const navHandler = () => void refresh(true);
-const renderHandler = (event) => {
-  if (event instanceof CustomEvent && event.detail?.source === "cfes-article-navigation") return;
-  void refresh(true);
-};
+const renderHandler = () => void refresh(true);
 document.addEventListener("nav", navHandler);
 document.addEventListener("render", renderHandler);
 void refresh();

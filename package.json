@@ -1,6 +1,6 @@
 {
   "name": "@vinggit/custom-file-explorer-sorting-support",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Use Obsidian Custom File Explorer Sorting specifications across Quartz navigation and backlinks.",
   "type": "module",
   "license": "GPL-3.0-only",
@@ -63,6 +63,7 @@
     }
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.8.0",
     "obsidian-custom-sort": "github:SebastianMC/obsidian-custom-sort#6100b0c664988b08460c0b7312f77d98770fe3fa"
   },
   "devDependencies": {
@@ -95,7 +96,7 @@
       "backlinks"
     ],
     "category": "emitter",
-    "version": "0.13.0",
+    "version": "0.13.1",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultOrder": 35,
