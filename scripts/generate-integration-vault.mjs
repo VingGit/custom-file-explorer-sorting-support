@@ -488,10 +488,19 @@ async function writeArticleNavigationFixture() {
   );
   const probeIndex = 1;
   const probe = articles[probeIndex];
+  const duplicateSource = articles.find((article) => article.file === "Harbor Lantern.md");
+  const duplicateTarget = articles.find((article) => article.file === "Quartz Orchard.md");
+  if (!duplicateSource || !duplicateTarget) {
+    throw new Error("Intentional Article Navigator duplicate fixture is missing");
+  }
   return {
     folder: canonicalFolder,
     order: canonicalOrder,
     references: canonicalReferences,
+    intentionalNavigationDuplicate: {
+      source: `${canonicalFolder}/${canonicalSlug(articleTitle(duplicateSource))}`,
+      target: `${canonicalFolder}/${canonicalSlug(articleTitle(duplicateTarget))}`,
+    },
     probe: {
       slug: `${canonicalFolder}/${canonicalSlug(articleTitle(probe))}`,
       previousSlug: `${canonicalFolder}/${canonicalSlug(articleTitle(articles[probeIndex - 1]))}`,
@@ -535,6 +544,7 @@ await write(
       articleNavigationFolder: articleNavigation.folder,
       articleNavigationOrder: articleNavigation.order,
       articleNavigationReferences: articleNavigation.references,
+      articleNavigationIntentionalDuplicate: articleNavigation.intentionalNavigationDuplicate,
       articleNavigationProbe: articleNavigation.probe,
     },
     null,

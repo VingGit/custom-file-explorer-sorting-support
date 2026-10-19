@@ -27,7 +27,12 @@ async function emitManifest(
   const manifest = buildExplorerOrderManifest(allFiles, options);
   if (options.articleNavigation) {
     const properties = await resolveArticleNavigationProperties(ctx, options);
-    manifest.articleNavigation = buildArticleNavigationManifest(allFiles, options, properties);
+    manifest.articleNavigation = buildArticleNavigationManifest(
+      allFiles,
+      options,
+      properties,
+      content,
+    );
   }
   const outputPath = path.join(ctx.argv.output, ...EXPLORER_MANIFEST_PATH.split("/"));
   await fs.mkdir(path.dirname(outputPath), { recursive: true });

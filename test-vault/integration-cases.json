@@ -130,6 +130,10 @@
       "47-numeric-roman-date-matchers/appendix-iv-notes"
     ]
   },
+  "articleNavigationIntentionalDuplicate": {
+    "source": "article-navigator-test/harbor-lantern",
+    "target": "article-navigator-test/quartz-orchard"
+  },
   "articleNavigationProbe": {
     "slug": "article-navigator-test/copper-kite",
     "previousSlug": "article-navigator-test/mossy-telescope",

@@ -2,10 +2,20 @@
 
 ## Unreleased
 
+## 0.13.0
+
 ### Fixed
 
 - Build both published Quartz test sites with their full GitHub Pages base paths
   so stock Explorer links stay inside the selected integration site.
+- Keep an intentional Markdown backlink visible when it duplicates a
+  Previous/Next frontmatter relationship.
+- Enable Quartz hover previews on generated article-navigation cards.
+
+### Added
+
+- Localize article-navigation labels for Finnish Quartz sites with `Edellinen`
+  and `Seuraava`.
 
 ## 0.12.0
 

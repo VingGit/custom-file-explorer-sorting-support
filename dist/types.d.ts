@@ -115,6 +115,8 @@ interface ArticleNavigationLink {
 interface ArticleNavigationPage {
     previous?: ArticleNavigationLink;
     next?: ArticleNavigationLink;
+    /** Previous/next targets that are also linked intentionally in the Markdown body. */
+    contentLinks?: string[];
 }
 interface ArticleNavigationManifest {
     previousProperty: string;

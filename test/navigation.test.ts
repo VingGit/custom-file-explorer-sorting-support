@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   compareManifestPaths,
+  articleNavigationLabels,
   isArticleNavigationBacklink,
   manifestKeyFromHref,
   manifestUrlFromDocument,
@@ -104,5 +105,35 @@ describe("browser navigation adapter", () => {
 
     expect(isArticleNavigationBacklink("Diary/Source", "Diary/Current", manifest)).toBe(true);
     expect(isArticleNavigationBacklink("Diary/Source", "Diary/Other", manifest)).toBe(false);
+  });
+
+  it("keeps a backlink when the navigation target is also linked from the note body", () => {
+    const manifest = {
+      version: 1 as const,
+      folders: {},
+      articleNavigation: {
+        previousProperty: "PreviousArticle",
+        nextProperty: "NextArticle",
+        pages: {
+          "Diary/Harbor Lantern": {
+            next: { slug: "Diary/Quartz Orchard", title: "Quartz Orchard" },
+            contentLinks: ["Diary/Quartz Orchard"],
+          },
+        },
+      },
+    };
+
+    expect(
+      isArticleNavigationBacklink("Diary/Harbor Lantern", "Diary/Quartz Orchard", manifest),
+    ).toBe(false);
+  });
+
+  it("localizes article navigation labels for Finnish Quartz sites", () => {
+    expect(articleNavigationLabels("fi-FI")).toEqual({
+      previous: "Edellinen",
+      next: "Seuraava",
+      navigation: "Artikkelien selaus",
+    });
+    expect(articleNavigationLabels("en-US").previous).toBe("Previous");
   });
 });

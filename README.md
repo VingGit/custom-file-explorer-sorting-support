@@ -95,7 +95,10 @@ Backlinks are always reordered to match the hierarchical Explorer order. Set
 `articleNavigation: true` to additionally replace backlinks created by the
 Previous/Next properties with responsive navigation cards below Quartz's ending
 line. Those links remain in Quartz's local and global graphs; only their rows in
-the Backlinks list are hidden. If the vault contains
+the Backlinks list are hidden. When a note also links the same target in its
+Markdown body, that intentional backlink remains listed. The navigation cards
+use Quartz's native hover previews and follow the site's language; English and
+Finnish (`Edellinen`/`Seuraava`) labels are included. If the vault contains
 `.obsidian/plugins/article-navigator/data.json`, the plugin reads
 `previousKey` and `nextKey` from it automatically. The two configured property
 options are used only as fallbacks. The cards use Quartz color variables, so

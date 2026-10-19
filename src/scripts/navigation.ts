@@ -14,6 +14,7 @@ interface ExplorerOrderManifest {
       {
         previous?: { slug: string; title: string };
         next?: { slug: string; title: string };
+        contentLinks?: string[];
       }
     >;
   };
@@ -126,10 +127,13 @@ export function isArticleNavigationBacklink(
 ): boolean {
   const source = manifest.articleNavigation?.pages[normalizePath(sourcePath)];
   const current = normalizePath(currentPath);
-  return (
+  const navigationTarget =
     (!!source?.previous && normalizePath(source.previous.slug) === current) ||
-    (!!source?.next && normalizePath(source.next.slug) === current)
+    (!!source?.next && normalizePath(source.next.slug) === current);
+  const intentionalContentLink = source?.contentLinks?.some(
+    (link) => normalizePath(link) === current,
   );
+  return navigationTarget && !intentionalContentLink;
 }
 
 function ruleKeys(rule: ManifestRule): Set<string> {
@@ -339,31 +343,51 @@ function articleHref(slug: string, basePath: string, locationHref: string): stri
 }
 
 function navigationSlot(
+  document: Document,
   direction: "previous" | "next",
   link: { slug: string; title: string },
   basePath: string,
   locationHref: string,
+  labels: ArticleNavigationLabels,
 ): HTMLElement {
   const slot = document.createElement("div");
   slot.className = `cfes-article-navigation-slot cfes-article-navigation-${direction}`;
 
   const anchor = document.createElement("a");
-  anchor.className = "internal cfes-article-navigation-link";
+  anchor.className = "internal internal-link cfes-article-navigation-link";
   anchor.href = articleHref(link.slug, basePath, locationHref);
+  anchor.dataset.slug = link.slug;
   anchor.setAttribute(
     "aria-label",
-    `${direction === "previous" ? "Previous" : "Next"}: ${link.title}`,
+    `${direction === "previous" ? labels.previous : labels.next}: ${link.title}`,
   );
 
   const label = document.createElement("div");
   label.className = "cfes-article-navigation-label";
-  label.textContent = direction === "previous" ? "‹ Previous" : "Next ›";
+  label.textContent = direction === "previous" ? `‹ ${labels.previous}` : `${labels.next} ›`;
   const title = document.createElement("div");
   title.className = "cfes-article-navigation-title";
   title.textContent = link.title;
   anchor.append(label, title);
   slot.appendChild(anchor);
   return slot;
+}
+
+interface ArticleNavigationLabels {
+  previous: string;
+  next: string;
+  navigation: string;
+}
+
+export function articleNavigationLabels(locale: string | undefined): ArticleNavigationLabels {
+  if (locale?.toLocaleLowerCase().startsWith("fi")) {
+    return {
+      previous: "Edellinen",
+      next: "Seuraava",
+      navigation: "Artikkelien selaus",
+    };
+  }
+  return { previous: "Previous", next: "Next", navigation: "Article navigation" };
 }
 
 function applyArticleNavigation(
@@ -381,16 +405,25 @@ function applyArticleNavigation(
   const footer = center?.querySelector(":scope > .page-footer");
   if (!center || !footer) return;
 
+  const labels = articleNavigationLabels(document.documentElement.lang);
+
   const navigation = document.createElement("nav");
   navigation.className = "cfes-article-navigation";
-  navigation.setAttribute("aria-label", "Article navigation");
+  navigation.setAttribute("aria-label", labels.navigation);
   if (page.previous) {
-    navigation.appendChild(navigationSlot("previous", page.previous, basePath, locationHref));
+    navigation.appendChild(
+      navigationSlot(document, "previous", page.previous, basePath, locationHref, labels),
+    );
   }
   if (page.next) {
-    navigation.appendChild(navigationSlot("next", page.next, basePath, locationHref));
+    navigation.appendChild(
+      navigationSlot(document, "next", page.next, basePath, locationHref, labels),
+    );
   }
   center.insertBefore(navigation, footer);
+  document.dispatchEvent(
+    new CustomEvent("render", { detail: { source: "cfes-article-navigation" } }),
+  );
 }
 
 export function applyNavigationSorting(

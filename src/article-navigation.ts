@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import type { Element, Nodes, Root } from "hast";
+
 import {
   buildVaultModel,
   normalizeCanonicalPath,
@@ -8,7 +10,7 @@ import {
   type VaultFileRecord,
   type VaultModel,
 } from "./model";
-import type { BuildCtx } from "./quartz";
+import type { BuildCtx, ProcessedContent } from "./quartz";
 import type {
   ArticleNavigationManifest,
   ArticleNavigationPage,
@@ -18,6 +20,38 @@ import type {
 interface ArticleNavigationProperties {
   previous: string;
   next: string;
+}
+
+function collectContentLinkSlugs(tree: Root): Set<string> {
+  const links = new Set<string>();
+
+  function visit(node: Nodes): void {
+    if (node.type === "element") {
+      const element = node as Element;
+      if (element.tagName === "a") {
+        const dataSlug =
+          ownValue(element.properties, "data-slug") ?? ownValue(element.properties, "dataSlug");
+        const slug = normalizeCanonicalPath(dataSlug);
+        if (slug) links.add(slug);
+      }
+    }
+
+    if ("children" in node) {
+      for (const child of node.children) visit(child);
+    }
+  }
+
+  visit(tree);
+  return links;
+}
+
+function contentLinksBySource(content: ProcessedContent[]): Map<string, Set<string>> {
+  const result = new Map<string, Set<string>>();
+  for (const [tree, file] of content) {
+    const source = normalizeCanonicalPath(ownValue(file.data, "slug"));
+    if (source) result.set(source, collectContentLinkSlugs(tree));
+  }
+  return result;
 }
 
 function nonEmptyString(value: unknown): string | undefined {
@@ -132,8 +166,10 @@ export function buildArticleNavigationManifest(
   allFiles: unknown,
   options: CustomFileExplorerSortingOptions,
   properties: ArticleNavigationProperties,
+  content: ProcessedContent[] = [],
 ): ArticleNavigationManifest {
   const model = buildVaultModel(allFiles, options);
+  const contentLinks = contentLinksBySource(content);
   const pages: Record<string, ArticleNavigationPage> = Object.create(null) as Record<
     string,
     ArticleNavigationPage
@@ -148,9 +184,17 @@ export function buildArticleNavigationManifest(
     const next = resolveReference(model, source, ownValue(source.frontmatter, properties.next));
     if (!previous && !next) continue;
 
+    const linkedNavigationTargets = [previous, next]
+      .filter((target): target is VaultFileRecord => target !== undefined)
+      .map((target) => target.slug)
+      .filter((target) => contentLinks.get(source.slug)?.has(target));
+
     pages[source.slug] = {
       ...(previous ? { previous: { slug: previous.slug, title: pageTitle(previous) } } : {}),
       ...(next ? { next: { slug: next.slug, title: pageTitle(next) } } : {}),
+      ...(linkedNavigationTargets.length > 0
+        ? { contentLinks: [...new Set(linkedNavigationTargets)] }
+        : {}),
     };
   }
 

@@ -68,6 +68,8 @@ export interface ArticleNavigationLink {
 export interface ArticleNavigationPage {
   previous?: ArticleNavigationLink;
   next?: ArticleNavigationLink;
+  /** Previous/next targets that are also linked intentionally in the Markdown body. */
+  contentLinks?: string[];
 }
 
 export interface ArticleNavigationManifest {

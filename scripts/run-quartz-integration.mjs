@@ -194,6 +194,16 @@ async function verifySites() {
   ) {
     throw new Error("Article navigation probe targets were not resolved correctly");
   }
+  const intentionalDuplicate = cases.articleNavigationIntentionalDuplicate;
+  if (
+    !articleNavigation.pages[intentionalDuplicate.source]?.contentLinks?.includes(
+      intentionalDuplicate.target,
+    )
+  ) {
+    throw new Error(
+      "A Markdown body link that duplicates article navigation was not preserved in the manifest",
+    );
+  }
 
   const contentIndex = JSON.parse(
     await readFile(path.join(withoutPanels, "static", "contentIndex.json"), "utf8"),
@@ -265,12 +275,20 @@ async function verifySites() {
   let foundFolderPageAdapter = false;
   let foundBacklinksAdapter = false;
   let foundArticleNavigationAdapter = false;
+  let foundArticleNavigationPopovers = false;
+  let foundFinnishArticleNavigation = false;
   for (const resource of resourceNames) {
     const contents = await readFile(path.join(withoutPanels, "static", resource), "utf8");
     if (contents.includes("custom-file-explorer-sorting.json")) foundExplorerAdapter = true;
     if (contents.includes(".page-listing ul.section-ul")) foundFolderPageAdapter = true;
     if (contents.includes(".backlinks ul.overflow")) foundBacklinksAdapter = true;
     if (contents.includes("cfes-article-navigation")) foundArticleNavigationAdapter = true;
+    if (contents.includes("internal-link") && contents.includes("dataset.slug")) {
+      foundArticleNavigationPopovers = true;
+    }
+    if (contents.includes("Edellinen") && contents.includes("Seuraava")) {
+      foundFinnishArticleNavigation = true;
+    }
   }
   if (!foundExplorerAdapter) {
     throw new Error("The stock Explorer sorting browser adapter was not emitted");
@@ -283,6 +301,12 @@ async function verifySites() {
   }
   if (!foundArticleNavigationAdapter) {
     throw new Error("The article-navigation browser adapter was not emitted");
+  }
+  if (!foundArticleNavigationPopovers) {
+    throw new Error("Article navigation did not emit Quartz-compatible popover links");
+  }
+  if (!foundFinnishArticleNavigation) {
+    throw new Error("Finnish article-navigation labels were not emitted");
   }
 
   const folderPageHtml = await readFile(
