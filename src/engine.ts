@@ -184,10 +184,7 @@ function iconName(
   options: CustomFileExplorerSortingOptions,
 ): string | undefined {
   const direct = ownValue(metadata, options.iconProperty);
-  if (typeof direct === "string" && direct.length > 0) return direct;
-  const panel = ownValue(metadata, "panel");
-  const panelIcon = ownValue(panel, options.iconProperty);
-  return typeof panelIcon === "string" && panelIcon.length > 0 ? panelIcon : undefined;
+  return typeof direct === "string" && direct.length > 0 ? direct : undefined;
 }
 
 function regexMatch(

@@ -1,26 +1,24 @@
-# Custom File Explorer Sorting Support for Quartz
+# Custom File Explorer Sorting for Quartz
 
 Use the same `sorting-spec` frontmatter in Obsidian and on a Quartz 5 site.
 
-This plugin reads the syntax from SebastianMC's [Custom File Explorer Sorting](https://github.com/SebastianMC/obsidian-custom-sort) plugin. It applies those rules to Quartz's stock Explorer, folder-page directory overviews, and Backlinks lists, and exposes the same ordering to compatible navigation plugins such as [Root Index Panels](https://github.com/VingGit/root-index-panels).
+This plugin reads the syntax from SebastianMC's [Custom File Explorer Sorting](https://github.com/SebastianMC/obsidian-custom-sort) plugin. It applies those rules to Quartz's stock Explorer, folder-page directory overviews, and Backlinks lists, and exposes the same ordering to compatible navigation plugins such as [Quartz Root Books Workspace](https://github.com/obsidian-material-plugins/quartz-root-books-workspace).
 
-It releases in version lockstep with Root Index Panels and
-[Root Books Toolkit](https://github.com/VingGit/obsidian-root-books-workspace). Matching
-versions are the tested combination; `0.9.0` is the first coordinated release.
+Compatibility with other plugins is defined by the shared [`navigation-sorting/v1` contract](https://github.com/obsidian-material-plugins/plugin-contracts/tree/main/contracts/navigation-sorting/v1). Implementations release independently; matching package versions are not required.
 
 ## Install
 
 From the root of a Quartz 5 site:
 
 ```bash
-npx quartz plugin add github:VingGit/custom-file-explorer-sorting-support
+npx quartz plugin add github:obsidian-material-plugins/quartz-custom-file-explorer-sorting
 ```
 
 Enable it in `quartz.config.yaml`:
 
 ```yaml
 plugins:
-  - source: github:VingGit/custom-file-explorer-sorting-support
+  - source: github:obsidian-material-plugins/quartz-custom-file-explorer-sorting
     enabled: true
     order: 35
 ```
@@ -61,7 +59,7 @@ Most rules use Quartz data directly. A few Obsidian integrations need a document
 | File creation/modification time  | Uses Quartz `dates`, then matching frontmatter dates as a fallback.                                                     |
 | Folder-note metadata             | Uses `index.md` first and a same-name folder note as fallback.                                                          |
 | Bookmark order                   | Uses a positive numeric `bookmarks-order` frontmatter property.                                                         |
-| Folder/file icons                | Uses `icon`, then `panel.icon`, in frontmatter.                                                                         |
+| Folder/file icons                | Uses the configured top-level `icon` frontmatter property.                                                              |
 | `standard` / UI-selected sorting | Uses Quartz's stable folder-first, natural alphabetical order because a generated site has no Obsidian sort-menu state. |
 | `--%` and `/--hide:`             | Hides the exact item from navigation only. The page is still built and remains reachable by URL or links.               |
 
@@ -71,7 +69,7 @@ The plugin validates every published `sorting-spec` during the build. A malforme
 
 ```yaml
 plugins:
-  - source: github:VingGit/custom-file-explorer-sorting-support
+  - source: github:obsidian-material-plugins/quartz-custom-file-explorer-sorting
     enabled: true
     options:
       specProperty: sorting-spec
@@ -86,7 +84,7 @@ plugins:
 | ------------------------- | ----------------- | --------------------------------------------------------------------------------- |
 | `specProperty`            | `sorting-spec`    | Frontmatter property containing the multiline sorting specification.              |
 | `bookmarksOrderProperty`  | `bookmarks-order` | Positive numeric property used for bookmark ordering and bookmark groups.         |
-| `iconProperty`            | `icon`            | Property used by `with-icon:` groups; `panel.<property>` is also checked.         |
+| `iconProperty`            | `icon`            | Top-level frontmatter property used by `with-icon:` groups.                       |
 | `articleNavigation`       | `false`           | Replace Previous/Next-property backlinks with navigation cards below the article. |
 | `previousArticleProperty` | `PreviousArticle` | Previous-link fallback property when Article Navigator settings cannot be read.   |
 | `nextArticleProperty`     | `NextArticle`     | Next-link fallback property when Article Navigator settings cannot be read.       |
@@ -117,9 +115,11 @@ The repository includes a self-contained [test vault](test-vault). Its first-lev
 The Quartz integration workflow builds that same vault twice:
 
 - with the stock Explorer and this plugin;
-- with the stock Explorer, this plugin, and Root Index Panels.
+- with the stock Explorer, this plugin, and Quartz Root Books Workspace.
 
-Both generated sites are checked for the sorting manifest, all fixture pages, the Explorer and folder-page browser adapters, and the Root Index Panels book order. Successful non-PR runs publish the two builds together as the repository's GitHub Pages site. The workflow runs only for relevant changes, on manual request, and once a week against the current Quartz 5 branch.
+Both generated sites are checked for the sorting manifest, all fixture pages, the Explorer and folder-page browser adapters, and the Root Books book order. Successful non-PR runs publish the two builds together as the repository's GitHub Pages site. The workflow runs only for relevant changes, on manual request, and once a week against the current Quartz 5 branch.
+
+For coordinated local contract changes, set `ROOT_BOOKS_PATH` to a built Quartz Root Books Workspace checkout before running `npm run test:integration`; otherwise the runner tests the current `main` branch from GitHub.
 
 ## Development
 

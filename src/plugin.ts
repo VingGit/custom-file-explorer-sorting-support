@@ -50,7 +50,8 @@ export function CustomFileExplorerSortingSupport(
 ): QuartzEmitterPluginInstance {
   const options = normalizeOptions(userOptions);
   const service = createSortingService(options);
-  (globalThis as unknown as Record<symbol, unknown>)[Symbol.for(SORTING_SERVICE_SYMBOL)] = service;
+  const services = globalThis as unknown as Record<symbol, unknown>;
+  services[Symbol.for(SORTING_SERVICE_SYMBOL)] = service;
 
   return {
     name: "CustomFileExplorerSortingSupport",

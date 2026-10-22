@@ -2317,10 +2317,7 @@ function bookmarkOrder(metadata, options) {
 }
 function iconName(metadata, options) {
   const direct = ownValue(metadata, options.iconProperty);
-  if (typeof direct === "string" && direct.length > 0) return direct;
-  const panel = ownValue(metadata, "panel");
-  const panelIcon = ownValue(panel, options.iconProperty);
-  return typeof panelIcon === "string" && panelIcon.length > 0 ? panelIcon : void 0;
+  return typeof direct === "string" && direct.length > 0 ? direct : void 0;
 }
 function regexMatch(expression, value) {
   expression.regex.lastIndex = 0;
@@ -2713,7 +2710,7 @@ function validateSortingSpecifications(allFiles, userOptions = void 0) {
 }
 
 // src/types.ts
-var SORTING_SERVICE_SYMBOL = "@vinggit/custom-file-explorer-sorting-support/service/v1";
+var SORTING_SERVICE_SYMBOL = "obsidian-material-plugins/navigation-sorting/v1";
 var EXPLORER_MANIFEST_PATH = "static/custom-file-explorer-sorting.json";
 
 // src/scripts/explorer.inline.ts
@@ -2747,7 +2744,8 @@ async function emitManifest(ctx, content, options) {
 function CustomFileExplorerSortingSupport(userOptions = void 0) {
   const options = normalizeOptions(userOptions);
   const service = createSortingService(options);
-  globalThis[Symbol.for(SORTING_SERVICE_SYMBOL)] = service;
+  const services = globalThis;
+  services[Symbol.for(SORTING_SERVICE_SYMBOL)] = service;
   return {
     name: "CustomFileExplorerSortingSupport",
     externalResources() {
