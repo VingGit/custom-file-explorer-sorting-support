@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.1
+
+### Changed
+
+- Publish releases through npm trusted publishing instead of a long-lived automation token.
+
 ## 0.14.0
 
 ### Changed
