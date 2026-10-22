@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.2
+
+### Fixed
+
+- Install the pinned upstream Git dependency before upgrading npm for trusted publishing so release jobs can complete.
+
 ## 0.14.1
 
 ### Changed

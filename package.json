@@ -1,6 +1,6 @@
 {
   "name": "@obsidian-material-plugins/quartz-custom-file-explorer-sorting",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "description": "Use Obsidian Custom File Explorer Sorting specifications across Quartz navigation and backlinks.",
   "type": "module",
   "license": "GPL-3.0-only",
@@ -99,7 +99,7 @@
       "backlinks"
     ],
     "category": "emitter",
-    "version": "0.14.1",
+    "version": "0.14.2",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultOrder": 35,
