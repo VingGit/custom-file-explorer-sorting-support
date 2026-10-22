@@ -22,6 +22,9 @@ jobs:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
 
+      - name: Upgrade npm for trusted publishing
+        run: npm install --global npm@latest
+
       - name: Verify tagged commit is contained in main
         run: |
           git fetch origin main
@@ -42,8 +45,6 @@ jobs:
       - run: npm run test:upstream
 
       - name: Publish package if missing
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if npm view "@obsidian-material-plugins/quartz-custom-file-explorer-sorting@$GITHUB_REF_NAME" version >/dev/null 2>&1; then
             echo "Version already published; skipping npm publish"
