@@ -191,7 +191,7 @@ describe("sorting engine", () => {
         { path: "first" },
         { path: "starred" },
       ]),
-    ).toEqual(["first", "later", "panel-starred", "starred", "ordinary"]);
+    ).toEqual(["first", "later", "starred", "ordinary", "panel-starred"]);
   });
 
   it("resolves exact path, folder-name, wildcard, and regular-expression targets", () => {

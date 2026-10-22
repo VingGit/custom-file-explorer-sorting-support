@@ -78,5 +78,5 @@ export interface ArticleNavigationManifest {
   pages: Record<string, ArticleNavigationPage>;
 }
 
-export const SORTING_SERVICE_SYMBOL = "@vinggit/custom-file-explorer-sorting-support/service/v1";
+export const SORTING_SERVICE_SYMBOL = "obsidian-material-plugins/navigation-sorting/v1";
 export const EXPLORER_MANIFEST_PATH = "static/custom-file-explorer-sorting.json";

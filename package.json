@@ -1,14 +1,17 @@
 {
-  "name": "@vinggit/custom-file-explorer-sorting-support",
-  "version": "0.13.1",
+  "name": "@obsidian-material-plugins/quartz-custom-file-explorer-sorting",
+  "version": "0.14.0",
   "description": "Use Obsidian Custom File Explorer Sorting specifications across Quartz navigation and backlinks.",
   "type": "module",
   "license": "GPL-3.0-only",
-  "author": "VingGit",
-  "homepage": "https://github.com/VingGit/custom-file-explorer-sorting-support",
+  "author": "Obsidian Material Plugins",
+  "homepage": "https://github.com/obsidian-material-plugins/quartz-custom-file-explorer-sorting",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VingGit/custom-file-explorer-sorting-support.git"
+    "url": "git+https://github.com/obsidian-material-plugins/quartz-custom-file-explorer-sorting.git"
+  },
+  "pluginContracts": {
+    "navigation-sorting": 1
   },
   "keywords": [
     "quartz",
@@ -82,11 +85,11 @@
     "vitest": "^2.1.9"
   },
   "quartz": {
-    "name": "custom-file-explorer-sorting-support",
-    "displayName": "Custom File Explorer Sorting Support",
+    "name": "quartz-custom-file-explorer-sorting",
+    "displayName": "Custom File Explorer Sorting",
     "description": "Applies Obsidian Custom File Explorer Sorting specifications to Quartz navigation and backlinks.",
-    "author": "VingGit",
-    "homepage": "https://github.com/VingGit/custom-file-explorer-sorting-support",
+    "author": "Obsidian Material Plugins",
+    "homepage": "https://github.com/obsidian-material-plugins/quartz-custom-file-explorer-sorting",
     "keywords": [
       "quartz",
       "obsidian",
@@ -96,7 +99,7 @@
       "backlinks"
     ],
     "category": "emitter",
-    "version": "0.13.1",
+    "version": "0.14.0",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],
     "defaultOrder": 35,

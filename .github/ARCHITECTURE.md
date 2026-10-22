@@ -14,12 +14,9 @@ When `articleNavigation` is enabled, the emitter first tries to read Article Nav
 
 ## Compatible navigation components
 
-The factory registers a frozen version-1 service on `Symbol.for("@vinggit/custom-file-explorer-sorting-support/service/v1")`. Consumers must look up that symbol at render time, validate `apiVersion`, and preserve their existing order if `matched` is false or the service is absent. This intentionally avoids a package dependency or license coupling.
+The factory registers a frozen version-1 service on `Symbol.for("obsidian-material-plugins/navigation-sorting/v1")`. Consumers must look up that symbol at render time, validate `apiVersion`, and preserve their existing order if `matched` is false or the service is absent. This intentionally avoids a package dependency or license coupling.
 
-Root Books Toolkit, Root Index Panels, and this package release at the same
-semantic version. The service remains dependency-free, but every ecosystem
-release audits the shared sorting and portable book-metadata assumptions. Tags
-equal the version without a leading `v`.
+This package and Root Books implementations release independently. Compatibility is based on `navigation-sorting/v1` in the shared contract catalog rather than package-version equality. Tags equal the version without a leading `v`.
 
 ## Upstream boundary
 
@@ -29,4 +26,4 @@ The upstream package ships TypeScript source instead of a reusable parser build.
 
 `test-vault/` is generated deterministically from `scripts/generate-integration-vault.mjs` and committed. Each first-level folder owns one upstream order or syntax feature, which keeps failures attributable and makes the built site useful for manual inspection.
 
-`scripts/run-quartz-integration.mjs` uses a disposable checkout of the current Quartz 5 branch. It installs this checkout through Quartz's local plugin-manager path, builds the stock Explorer variant, then installs the pinned Root Index Panels revision and builds the combined variant. It compares the manifests, checks every case and target folder, verifies both browser navigation surfaces, and proves that the Root Index Panels switcher follows the root specification. `.github/workflows/quartz-integration.yml` uploads both sites and deploys their combined landing page on non-PR runs.
+`scripts/run-quartz-integration.mjs` uses a disposable checkout of the current Quartz 5 branch. It installs this checkout through Quartz's local plugin-manager path, builds the stock Explorer variant, then installs the pinned Quartz Root Books Workspace revision and builds the combined variant. It compares the manifests, checks every case and target folder, verifies both browser navigation surfaces, and proves that the Root Books switcher follows the root specification. `.github/workflows/quartz-integration.yml` uploads both sites and deploys their combined landing page on non-PR runs.

@@ -20,6 +20,8 @@ import { EXPLORER_MANIFEST_PATH, SORTING_SERVICE_SYMBOL } from "../src/types";
 const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
+  const services = globalThis as unknown as Record<symbol, unknown>;
+  delete services[Symbol.for(SORTING_SERVICE_SYMBOL)];
   await Promise.all(
     temporaryDirectories
       .splice(0)

@@ -17,13 +17,13 @@ This package brings SebastianMC Custom File Explorer Sorting specifications to Q
 - `src/vendor/obsidian-custom-sort-runtime.*` is only the typed boundary around the bundled upstream parser. Do not reimplement or casually fork its grammar.
 - `src/engine.ts` owns Quartz data mapping and ordering semantics.
 - Hidden items are navigation-only. This plugin is not a Quartz publication filter.
-- `SORTING_SERVICE_SYMBOL` and its API version are the optional integration contract for other navigation plugins. Keep it dependency-free and backward-compatible within the major API version.
+- `navigation-sorting/v1` in `obsidian-material-plugins/plugin-contracts` is the optional integration contract for other navigation plugins. Keep it dependency-free and backward-compatible within the contract version. Do not add aliases for obsolete provider-specific symbols.
 - `static/custom-file-explorer-sorting.json` is the client Explorer, Backlinks,
   and optional article-navigation contract. Treat its version as public and
   keep new version-1 fields additive.
 - `dist/` is committed installation output. Never edit it by hand; rebuild it from source.
 - `test-vault/` is the repository-owned integration fixture. Keep every upstream sorting order represented by a first-level folder and regenerate it only with `npm run fixture:generate`.
-- `scripts/run-quartz-integration.mjs` must build the bundled vault against Quartz 5 both without and with Root Index Panels, verify both outputs, and leave publishable artifacts under ignored `integration-output/`.
+- `scripts/run-quartz-integration.mjs` must build the bundled vault against Quartz 5 both without and with Quartz Root Books Workspace, verify both outputs, and leave publishable artifacts under ignored `integration-output/`.
 - Use normal Quartz plugin-manager commands in integration fixtures. Do not edit host `.quartz/plugins/` output directly.
 
 ## Upstream compatibility
@@ -42,12 +42,10 @@ This package brings SebastianMC Custom File Explorer Sorting specifications to Q
 - Run `npm run test:integration` when the plugin, bundled vault, Quartz integration runner, or Root Index Panels contract changes.
 - Keep the fast unit/conformance suite comprehensive; weekly and host integration checks may be slower.
 
-## Root Books ecosystem
+## Contract compatibility
 
-- Release this project in exact semantic-version lockstep with
-  `VingGit/obsidian-root-books-workspace` and `VingGit/root-index-panels`.
+- Release this project independently from Root Books implementations. Compatibility is determined by the declared `navigation-sorting/v1` contract, not matching package versions.
 - Use release tags equal to the version without a leading `v`.
 - Keep cross-repository instructions portable: never add contributor machine
   paths, vault contents, account data, or credentials.
-- A dependency or compatibility automation may report drift, but it must not
-  version or release this repository independently.
+- Compatibility automation may report contract drift, but must not couple this repository's version or release to another implementation.

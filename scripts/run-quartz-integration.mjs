@@ -6,28 +6,32 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const integrationRoot = path.join(repositoryRoot, ".integration");
 const quartzRoot = path.join(integrationRoot, "quartz");
-const sortingPluginRoot = path.join(integrationRoot, "custom-file-explorer-sorting-support");
-const rootIndexRoot = path.join(integrationRoot, "root-index-panels");
+const sortingPluginRoot = path.join(integrationRoot, "quartz-custom-file-explorer-sorting");
+const localRootBooksRoot = process.env.ROOT_BOOKS_PATH
+  ? path.resolve(process.env.ROOT_BOOKS_PATH)
+  : undefined;
+const rootBooksRoot =
+  localRootBooksRoot ?? path.join(integrationRoot, "quartz-root-books-workspace");
 const outputRoot = path.join(repositoryRoot, "integration-output");
-const withoutPanels = path.join(outputRoot, "without-root-index-panels");
-const withPanels = path.join(outputRoot, "with-root-index-panels");
+const withoutRootBooks = path.join(outputRoot, "without-root-books");
+const withRootBooks = path.join(outputRoot, "with-root-books");
 const pagesProject =
   process.env.GITHUB_REPOSITORY?.split("/").filter(Boolean).at(-1) ??
-  "custom-file-explorer-sorting-support";
+  "quartz-custom-file-explorer-sorting";
 const pagesBaseDir = `/${pagesProject}`;
-const withoutPanelsBaseDir = `${pagesBaseDir}/without-root-index-panels`;
-const withPanelsBaseDir = `${pagesBaseDir}/with-root-index-panels`;
+const withoutRootBooksBaseDir = `${pagesBaseDir}/without-root-books`;
+const withRootBooksBaseDir = `${pagesBaseDir}/with-root-books`;
 const pagesOwner =
   process.env.GITHUB_REPOSITORY_OWNER ??
   process.env.GITHUB_REPOSITORY?.split("/").filter(Boolean)[0] ??
-  "VingGit";
+  "obsidian-material-plugins";
 const pagesHost = `${pagesOwner.toLowerCase()}.github.io`;
 const quartzRepository = process.env.QUARTZ_REPOSITORY ?? "https://github.com/jackyzha0/quartz.git";
 const quartzRef = process.env.QUARTZ_REF ?? "v5";
-const rootIndexRepository =
-  process.env.ROOT_INDEX_PANELS_REPOSITORY ?? "https://github.com/VingGit/root-index-panels.git";
-const rootIndexRef =
-  process.env.ROOT_INDEX_PANELS_REF ?? "1d6c79df383ca10b596ffc36eb36655a5e3a7409";
+const rootBooksRepository =
+  process.env.ROOT_BOOKS_REPOSITORY ??
+  "https://github.com/obsidian-material-plugins/quartz-root-books-workspace.git";
+const rootBooksRef = process.env.ROOT_BOOKS_REF ?? "main";
 
 function run(command, args, cwd) {
   return new Promise((resolve, reject) => {
@@ -72,16 +76,24 @@ async function prepareSortingPlugin() {
   );
 }
 
-async function prepareRootIndexPanels() {
-  await rm(rootIndexRoot, { recursive: true, force: true });
-  await run("git", ["init", rootIndexRoot], repositoryRoot);
-  await run("git", ["remote", "add", "origin", rootIndexRepository], rootIndexRoot);
-  await run("git", ["fetch", "--depth", "1", "origin", rootIndexRef], rootIndexRoot);
-  await run("git", ["checkout", "--detach", "FETCH_HEAD"], rootIndexRoot);
+async function prepareRootBooks() {
+  if (localRootBooksRoot) {
+    const manifest = JSON.parse(await readFile(path.join(rootBooksRoot, "package.json"), "utf8"));
+    if (manifest.name !== "@obsidian-material-plugins/quartz-root-books-workspace") {
+      throw new Error(`ROOT_BOOKS_PATH is not Quartz Root Books Workspace: ${rootBooksRoot}`);
+    }
+    await readFile(path.join(rootBooksRoot, "dist", "index.js"), "utf8");
+    return;
+  }
+  await rm(rootBooksRoot, { recursive: true, force: true });
+  await run("git", ["init", rootBooksRoot], repositoryRoot);
+  await run("git", ["remote", "add", "origin", rootBooksRepository], rootBooksRoot);
+  await run("git", ["fetch", "--depth", "1", "origin", rootBooksRef], rootBooksRoot);
+  await run("git", ["checkout", "--detach", "FETCH_HEAD"], rootBooksRoot);
   await run(
     "npm",
     ["ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"],
-    rootIndexRoot,
+    rootBooksRoot,
   );
 }
 
@@ -134,8 +146,8 @@ async function verifySites() {
     await readFile(path.join(repositoryRoot, "test-vault", "integration-cases.json"), "utf8"),
   );
   const manifestPath = path.join("static", "custom-file-explorer-sorting.json");
-  const withoutManifestText = await readFile(path.join(withoutPanels, manifestPath), "utf8");
-  const withManifestText = await readFile(path.join(withPanels, manifestPath), "utf8");
+  const withoutManifestText = await readFile(path.join(withoutRootBooks, manifestPath), "utf8");
+  const withManifestText = await readFile(path.join(withRootBooks, manifestPath), "utf8");
   if (withoutManifestText !== withManifestText) {
     throw new Error("The two integration variants emitted different sorting manifests");
   }
@@ -158,8 +170,8 @@ async function verifySites() {
     if (!manifest.folders[folder]) {
       throw new Error(`Sorting manifest did not include case folder ${folder}`);
     }
-    await readFile(path.join(withoutPanels, folder, "index.html"), "utf8");
-    await readFile(path.join(withPanels, folder, "index.html"), "utf8");
+    await readFile(path.join(withoutRootBooks, folder, "index.html"), "utf8");
+    await readFile(path.join(withRootBooks, folder, "index.html"), "utf8");
   }
   for (const folder of cases.targetFolders) {
     if (!manifest.folders[folder]) {
@@ -206,7 +218,7 @@ async function verifySites() {
   }
 
   const contentIndex = JSON.parse(
-    await readFile(path.join(withoutPanels, "static", "contentIndex.json"), "utf8"),
+    await readFile(path.join(withoutRootBooks, "static", "contentIndex.json"), "utf8"),
   );
   const probeGraphLinks = contentIndex[probe.slug]?.links;
   const expectedGraphLinks = [
@@ -228,46 +240,44 @@ async function verifySites() {
     }
   }
 
-  const probeHtml = await readFile(path.join(withoutPanels, `${probe.slug}.html`), "utf8");
+  const probeHtml = await readFile(path.join(withoutRootBooks, `${probe.slug}.html`), "utf8");
   const previousBacklink = probeHtml.indexOf(probe.previousTitle);
   const nextBacklink = probeHtml.indexOf(probe.nextTitle);
   if (previousBacklink < 0 || nextBacklink < 0 || previousBacklink > nextBacklink) {
     throw new Error("Article Navigator fixture does not begin with alphabetical Backlinks order");
   }
 
-  const withoutRootHtml = await readFile(path.join(withoutPanels, "index.html"), "utf8");
-  const withRootHtml = await readFile(path.join(withPanels, "index.html"), "utf8");
+  const withoutRootHtml = await readFile(path.join(withoutRootBooks, "index.html"), "utf8");
+  const withRootHtml = await readFile(path.join(withRootBooks, "index.html"), "utf8");
   for (const [label, html, baseDir] of [
-    ["disabled", withoutRootHtml, withoutPanelsBaseDir],
-    ["enabled", withRootHtml, withPanelsBaseDir],
+    ["disabled", withoutRootHtml, withoutRootBooksBaseDir],
+    ["enabled", withRootHtml, withRootBooksBaseDir],
   ]) {
     if (!html.includes(`data-basepath="${baseDir}"`)) {
-      throw new Error(
-        `The Root Index Panels ${label} build did not retain its GitHub Pages base path`,
-      );
+      throw new Error(`The Root Books ${label} build did not retain its GitHub Pages base path`);
     }
   }
   if (withoutRootHtml.includes("rip-sidebar")) {
-    throw new Error("Root Index Panels markup appeared in the disabled integration build");
+    throw new Error("Root Books markup appeared in the disabled integration build");
   }
   if (!withRootHtml.includes("rip-sidebar")) {
-    throw new Error("Root Index Panels markup is missing from the enabled integration build");
+    throw new Error("Root Books markup is missing from the enabled integration build");
   }
 
   const switcher = withRootHtml.match(/<ul class="rip-sidebar-books">(?<contents>[\s\S]*?)<\/ul>/);
   if (!switcher?.groups?.contents) {
-    throw new Error("Root Index Panels book switcher is missing");
+    throw new Error("Root Books book switcher is missing");
   }
   const switcherFolders = [...switcher.groups.contents.matchAll(/href="\.\/([^/]+)\//g)].map(
     (match) => match[1],
   );
   if (JSON.stringify(switcherFolders) !== JSON.stringify(expectedRootFolders)) {
     throw new Error(
-      `Root Index Panels order differs from sorting-spec:\nexpected ${JSON.stringify(expectedRootFolders)}\nactual   ${JSON.stringify(switcherFolders)}`,
+      `Root Books order differs from sorting-spec:\nexpected ${JSON.stringify(expectedRootFolders)}\nactual   ${JSON.stringify(switcherFolders)}`,
     );
   }
 
-  const resources = await readFile(path.join(withoutPanels, "index.html"), "utf8");
+  const resources = await readFile(path.join(withoutRootBooks, "index.html"), "utf8");
   const resourceNames = [
     ...resources.matchAll(/src="\.\/static\/(resource-after-[^"]+\.js)"/g),
   ].map((match) => match[1]);
@@ -281,7 +291,7 @@ async function verifySites() {
   let foundArticleNavigationRenderBroadcast = false;
   let foundFinnishArticleNavigation = false;
   for (const resource of resourceNames) {
-    const contents = await readFile(path.join(withoutPanels, "static", resource), "utf8");
+    const contents = await readFile(path.join(withoutRootBooks, "static", resource), "utf8");
     if (contents.includes("custom-file-explorer-sorting.json")) foundExplorerAdapter = true;
     if (contents.includes(".page-listing ul.section-ul")) foundFolderPageAdapter = true;
     if (contents.includes(".backlinks ul.overflow")) foundBacklinksAdapter = true;
@@ -334,7 +344,7 @@ async function verifySites() {
   }
 
   const folderPageHtml = await readFile(
-    path.join(withoutPanels, "25-files-first", "index.html"),
+    path.join(withoutRootBooks, "25-files-first", "index.html"),
     "utf8",
   );
   if (!folderPageHtml.includes('class="page-listing"') || !folderPageHtml.includes("folder-3")) {
@@ -359,8 +369,8 @@ async function writeLandingPage() {
   <body>
     <h1>Quartz sorting integration fixtures</h1>
     <p>Both sites are generated from the repository's bundled test vault.</p>
-    <a href="./without-root-index-panels/">Stock Explorer only</a>
-    <a href="./with-root-index-panels/">Stock Explorer with Root Index Panels</a>
+    <a href="./without-root-books/">Stock Explorer only</a>
+    <a href="./with-root-books/">Stock Explorer with Root Books</a>
   </body>
 </html>
 `;
@@ -374,15 +384,15 @@ await prepareVault();
 await prepareSortingPlugin();
 await run("npm", ["ci", "--no-audit", "--no-fund"], quartzRoot);
 await quartz("plugin", "add", sortingPluginRoot);
-await quartz("plugin", "enable", "custom-file-explorer-sorting-support");
+await quartz("plugin", "enable", "quartz-custom-file-explorer-sorting");
 await enableArticleNavigation();
-await setQuartzBaseUrl(withoutPanelsBaseDir);
-await quartz("build", "--output", withoutPanels, "--baseDir", withoutPanelsBaseDir);
-await prepareRootIndexPanels();
-await quartz("plugin", "add", rootIndexRoot);
-await quartz("plugin", "enable", "root-index-panels");
-await setQuartzBaseUrl(withPanelsBaseDir);
-await quartz("build", "--output", withPanels, "--baseDir", withPanelsBaseDir);
+await setQuartzBaseUrl(withoutRootBooksBaseDir);
+await quartz("build", "--output", withoutRootBooks, "--baseDir", withoutRootBooksBaseDir);
+await prepareRootBooks();
+await quartz("plugin", "add", rootBooksRoot);
+await quartz("plugin", "enable", "quartz-root-books-workspace");
+await setQuartzBaseUrl(withRootBooksBaseDir);
+await quartz("build", "--output", withRootBooks, "--baseDir", withRootBooksBaseDir);
 await verifySites();
 await writeLandingPage();
 

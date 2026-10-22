@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.14.0
+
+### Changed
+
+- Moved the package and repository identity to the Obsidian Material Plugins organization.
+- Replaced package-version lockstep with the shared `navigation-sorting/v1` contract.
+- Limited icon sorting to the configured top-level frontmatter property so sorting no longer depends on Root Books `panel` appearance metadata.
 
 ## 0.13.1
 

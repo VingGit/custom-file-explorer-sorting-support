@@ -123,7 +123,7 @@ interface ArticleNavigationManifest {
     nextProperty: string;
     pages: Record<string, ArticleNavigationPage>;
 }
-declare const SORTING_SERVICE_SYMBOL = "@vinggit/custom-file-explorer-sorting-support/service/v1";
+declare const SORTING_SERVICE_SYMBOL = "obsidian-material-plugins/navigation-sorting/v1";
 declare const EXPLORER_MANIFEST_PATH = "static/custom-file-explorer-sorting.json";
 
 export { type ArticleNavigationLink, type ArticleNavigationManifest, type ArticleNavigationPage, type BuildCtx, type ChangeEvent, type CustomFileExplorerSortingOptions, EXPLORER_MANIFEST_PATH, type ExplorerOrderManifest, type FilePath, type ProcessedContent, type QuartzEmitterPlugin, type QuartzEmitterPluginInstance, type QuartzNavigationSortingService, type QuartzPluginData, type QuartzSortInput, type QuartzSortResult, type QuartzTransformerPlugin, type QuartzTransformerPluginInstance, SORTING_SERVICE_SYMBOL, type StaticResources };
